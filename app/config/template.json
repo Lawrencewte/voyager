@@ -1,0 +1,149 @@
+{
+  "theme": {
+    "name": "Your Theme Name",
+    "description": "Brief description of your theme",
+    "colors": {
+      "primary": "#000000",
+      "secondary": "#000000", 
+      "accent": "#000000",
+      "background": "#FFFFFF",
+      "text": "#000000",
+      "border": "#000000"
+    },
+    "periods": {
+      "period1": { "color": "#000000", "textColor": "#FFFFFF" },
+      "period2": { "color": "#000000", "textColor": "#FFFFFF" },
+      "period3": { "color": "#000000", "textColor": "#FFFFFF" },
+      "period4": { "color": "#000000", "textColor": "#FFFFFF" },
+      "period5": { "color": "#000000", "textColor": "#FFFFFF" },
+      "period6": { "color": "#000000", "textColor": "#FFFFFF" },
+      "period7": { "color": "#000000", "textColor": "#FFFFFF" }
+    },
+    "specialSpaces": {
+      "positive": { "symbol": "✨", "name": "Positive Card", "gradient": "linear-gradient(135deg, #00FF00, #008000)" },
+      "negative": { "symbol": "💀", "name": "Negative Card", "gradient": "linear-gradient(135deg, #FF0000, #800000)" },
+      "attack1": { "symbol": "⚔️", "name": "Attack Type 1", "gradient": "linear-gradient(135deg, #808080, #404040)" },
+      "attack2": { "symbol": "🛡️", "name": "Attack Type 2", "gradient": "linear-gradient(135deg, #654321, #8B4513)" }
+    }
+  },
+  "game": {
+    "title": "YOUR GAME TITLE",
+    "subtitle": "Your Game Subtitle",
+    "description": "Game description and victory condition explanation",
+    "victoryCondition": 40,
+    "victoryResource": "Victory Points",
+    "passStartBonus": 5,
+    "resources": {
+      "primary": "victoryPoints",
+      "secondary": ["resource1", "resource2"],
+      "helpers": "allies"
+    }
+  },
+  "locations": [
+    {
+      "name": "Starting Location",
+      "type": "start",
+      "description": "Starting space description",
+      "period": "period1"
+    },
+    {
+      "name": "Location 1",
+      "type": "location",
+      "description": "Location description",
+      "period": "period1"
+    },
+    {
+      "name": "Location 2",
+      "type": "location",
+      "description": "Location description",
+      "period": "period2"
+    },
+    {
+      "name": "⚔️ ATTACK SPACE",
+      "type": "special",
+      "subtype": "attack1",
+      "description": "Attack description",
+      "period": "attack1"
+    },
+    {
+      "name": "✨ POSITIVE CARD",
+      "type": "special",
+      "subtype": "positive",
+      "description": "Draw a positive card",
+      "period": "positive"
+    },
+    {
+      "name": "💀 NEGATIVE CARD",
+      "type": "special",
+      "subtype": "negative",
+      "description": "Draw a negative card",
+      "period": "negative"
+    }
+  ],
+  "trivia": {
+    "Location 1": {
+      "significance": "Location significance",
+      "characters": {
+        "Character 1": [
+          { "question": "Sample question 1?", "answer": "Sample answer 1" },
+          { "question": "Sample question 2?", "answer": "Sample answer 2" },
+          { "question": "Sample question 3?", "answer": "Sample answer 3" }
+        ],
+        "Character 2": [
+          { "question": "Sample question 4?", "answer": "Sample answer 4" },
+          { "question": "Sample question 5?", "answer": "Sample answer 5" }
+        ]
+      }
+    },
+    "Location 2": {
+      "significance": "Another location significance",
+      "characters": {
+        "Character 3": [
+          { "question": "Sample question 6?", "answer": "Sample answer 6" },
+          { "question": "Sample question 7?", "answer": "Sample answer 7" }
+        ]
+      }
+    }
+  },
+  "cards": {
+    "positive": [
+      { "title": "Positive Card 1", "reference": "Source Reference", "effect": "Positive effect description.", "symbol": "✨" },
+      { "title": "Positive Card 2", "reference": "Source Reference", "effect": "Another positive effect.", "symbol": "🌟" },
+      { "title": "Positive Card 3", "reference": "Source Reference", "effect": "Third positive effect.", "symbol": "⭐" }
+    ],
+    "negative": [
+      { "title": "Negative Card 1", "reference": "Source Reference", "effect": "Negative effect description.", "symbol": "💀" },
+      { "title": "Negative Card 2", "reference": "Source Reference", "effect": "Another negative effect.", "symbol": "☠️" },
+      { "title": "Negative Card 3", "reference": "Source Reference", "effect": "Third negative effect.", "symbol": "🔥" }
+    ]
+  },
+  "rules": {
+    "title": "🎯 Your Game Rules",
+    "sections": [
+      {
+        "title": "🎯 Objective",
+        "content": "Describe the main objective of your game here."
+      },
+      {
+        "title": "🎲 Basic Gameplay",
+        "content": "Explain the basic gameplay mechanics."
+      },
+      {
+        "title": "📚 Knowledge System",
+        "content": "Explain how the trivia/knowledge system works."
+      },
+      {
+        "title": "👥 Helper/Ally System",
+        "content": "Explain how helpers or allies work in your game."
+      },
+      {
+        "title": "⚡ Special Spaces",
+        "content": "Describe what happens on special spaces."
+      },
+      {
+        "title": "🏆 Winning",
+        "content": "Explain the victory conditions."
+      }
+    ]
+  }
+}

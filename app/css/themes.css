@@ -1,0 +1,777 @@
+/* css/themes.css - Theme-specific styling */
+
+/* Biblical Theme (Default) */
+.theme-biblical {
+  --primary-color: #8B4513;
+  --secondary-color: #FFD700;
+  --background-color: #2E8B57;
+  --surface-color: rgba(255, 255, 255, 0.95);
+  --text-color: #333333;
+  --text-light: #666666;
+  --text-dark: #000000;
+  --text-inverse: #FFFFFF;
+  --board-background: #F5F5DC;
+  --board-border: #8B4513;
+  
+  /* Biblical Location Categories */
+  --creation-color: #FFD93D;
+  --patriarchs-color: #FF6B6B;
+  --exodus-color: #4ECDC4;
+  --conquest-color: #45B7D1;
+  --kingdom-color: #96CEB4;
+  --prophets-color: #DDA0DD;
+  --exile-color: #FFEAA7;
+  
+  /* Biblical Special Spaces */
+  --angel-space: #FFD700;
+  --demon-space: #8B0000;
+  --wolves-space: #654321;
+  --bandits-space: #2F4F4F;
+}
+
+.theme-biblical .game-container {
+  background: linear-gradient(135deg, #2E8B57, #4682B4);
+}
+
+.theme-biblical .center-area {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+}
+
+.theme-biblical .panel-title::before {
+  content: "📖 ";
+}
+
+.theme-biblical .trivia-header {
+  background: linear-gradient(135deg, #8B4513, #A0522D);
+}
+
+/* Medieval Theme */
+.theme-medieval {
+  --primary-color: #8B0000;
+  --secondary-color: #FFD700;
+  --background-color: #2F4F4F;
+  --surface-color: rgba(255, 255, 255, 0.9);
+  --text-color: #FFFFFF;
+  --text-light: #CCCCCC;
+  --text-dark: #000000;
+  --text-inverse: #000000;
+  --board-background: #DCDCDC;
+  --board-border: #8B0000;
+  
+  /* Medieval Location Categories */
+  --village-color: #228B22;
+  --castle-color: #8B0000;
+  --monastery-color: #4B0082;
+  --forest-color: #006400;
+  --mountain-color: #696969;
+  --market-color: #DAA520;
+  --battlefield-color: #800000;
+  
+  /* Medieval Special Spaces */
+  --blessing-space: #FFD700;
+  --curse-space: #8B0000;
+  --danger-space: #654321;
+  --trial-space: #2F4F4F;
+}
+
+.theme-medieval .game-container {
+  background: linear-gradient(135deg, #2F4F4F, #708090);
+}
+
+.theme-medieval .center-area {
+  background: linear-gradient(135deg, #8B0000, #DC143C);
+  color: #FFD700;
+}
+
+.theme-medieval .center-title {
+  color: #FFD700;
+}
+
+.theme-medieval .center-subtitle,
+.theme-medieval .center-description {
+  color: #FFF8DC;
+}
+
+.theme-medieval .panel-title::before {
+  content: "🏰 ";
+}
+
+.theme-medieval .trivia-header {
+  background: linear-gradient(135deg, #8B0000, #A0522D);
+}
+
+.theme-medieval .location-header {
+  border-bottom: 2px solid #8B0000;
+}
+
+/* Village locations */
+.theme-medieval .village .location-header {
+  background: #228B22;
+  color: white;
+}
+
+/* Castle locations */
+.theme-medieval .castle .location-header {
+  background: #8B0000;
+  color: #FFD700;
+}
+
+/* Monastery locations */
+.theme-medieval .monastery .location-header {
+  background: #4B0082;
+  color: white;
+}
+
+/* Forest locations */
+.theme-medieval .forest .location-header {
+  background: #006400;
+  color: white;
+}
+
+/* Dark Theme */
+.theme-dark {
+  --primary-color: #BB86FC;
+  --secondary-color: #03DAC6;
+  --background-color: #121212;
+  --surface-color: rgba(30, 30, 30, 0.95);
+  --text-color: #FFFFFF;
+  --text-light: #AAAAAA;
+  --text-dark: #FFFFFF;
+  --text-inverse: #000000;
+  --board-background: #1E1E1E;
+  --board-border: #BB86FC;
+  
+  /* Dark theme colors */
+  --success-color: #4CAF50;
+  --warning-color: #FF9800;
+  --error-color: #CF6679;
+  --info-color: #03DAC6;
+}
+
+.theme-dark .game-container {
+  background: linear-gradient(135deg, #121212, #1E1E1E);
+}
+
+.theme-dark .center-area {
+  background: linear-gradient(135deg, #BB86FC, #9C27B0);
+  color: #000000;
+}
+
+.theme-dark .panel {
+  background: rgba(30, 30, 30, 0.95);
+  border: 1px solid #333333;
+}
+
+.theme-dark .location {
+  background: #2D2D2D;
+  border-color: #444444;
+  color: #FFFFFF;
+}
+
+.theme-dark .location-name {
+  color: #FFFFFF;
+}
+
+.theme-dark .question-item {
+  background: #2D2D2D;
+  border-color: #444444;
+  color: #FFFFFF;
+}
+
+.theme-dark .question-answer {
+  background: #1A3D1A;
+  color: #AAAAAA;
+}
+
+/* Light Theme */
+.theme-light {
+  --primary-color: #1976D2;
+  --secondary-color: #FFC107;
+  --background-color: #E3F2FD;
+  --surface-color: rgba(255, 255, 255, 0.98);
+  --text-color: #212121;
+  --text-light: #757575;
+  --text-dark: #000000;
+  --text-inverse: #FFFFFF;
+  --board-background: #FFFFFF;
+  --board-border: #1976D2;
+  
+  /* Light theme colors */
+  --success-color: #388E3C;
+  --warning-color: #F57C00;
+  --error-color: #D32F2F;
+  --info-color: #1976D2;
+}
+
+.theme-light .game-container {
+  background: linear-gradient(135deg, #E3F2FD, #BBDEFB);
+}
+
+.theme-light .center-area {
+  background: linear-gradient(135deg, #FFC107, #FFB300);
+  color: #1976D2;
+}
+
+.theme-light .panel {
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Custom Theme Variables */
+.theme-custom {
+  /* These can be overridden by JavaScript */
+  --primary-color: var(--custom-primary, #8B4513);
+  --secondary-color: var(--custom-secondary, #FFD700);
+  --background-color: var(--custom-background, #2E8B57);
+  --surface-color: var(--custom-surface, rgba(255, 255, 255, 0.95));
+  --text-color: var(--custom-text, #333333);
+  --board-background: var(--custom-board-bg, #F5F5DC);
+  --board-border: var(--custom-board-border, #8B4513);
+}
+
+/* Theme Animations */
+.theme-transition {
+  transition: all 0.5s ease-in-out;
+}
+
+.theme-transition * {
+  transition: background-color 0.5s ease-in-out, 
+              color 0.5s ease-in-out, 
+              border-color 0.5s ease-in-out;
+}
+
+/* Theme-specific special effects */
+.theme-biblical .special-space {
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-biblical .special-space::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+.theme-medieval .special-space {
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
+}
+
+.theme-medieval .castle .location-header::after {
+  content: '🏰';
+  margin-left: 5px;
+}
+
+.theme-medieval .monastery .location-header::after {
+  content: '⛪';
+  margin-left: 5px;
+}
+
+.theme-medieval .village .location-header::after {
+  content: '🏘️';
+  margin-left: 5px;
+}
+
+.theme-medieval .forest .location-header::after {
+  content: '🌲';
+  margin-left: 5px;
+}
+
+/* Theme-specific card styles */
+.theme-biblical .angel-card-display,
+.theme-biblical .angel-deck-mini {
+  background: linear-gradient(135deg, #FFD700, #FFF8DC);
+  border-color: #DAA520;
+}
+
+.theme-biblical .demon-card-display,
+.theme-biblical .demon-deck-mini {
+  background: linear-gradient(135deg, #8B0000, #2F0000);
+  border-color: #4B0000;
+}
+
+.theme-medieval .angel-card-display,
+.theme-medieval .angel-deck-mini {
+  background: linear-gradient(135deg, #FFD700, #FFF8DC);
+  border-color: #8B0000;
+}
+
+.theme-medieval .demon-card-display,
+.theme-medieval .demon-deck-mini {
+  background: linear-gradient(135deg, #8B0000, #2F0000);
+  border-color: #FFD700;
+}
+
+/* Theme selector */
+.theme-selector {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: var(--z-dropdown);
+  background: var(--surface-color);
+  border: 2px solid var(--primary-color);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-sm);
+  box-shadow: var(--shadow-md);
+}
+
+.theme-selector select {
+  background: transparent;
+  border: none;
+  color: var(--primary-color);
+  font-weight: bold;
+  cursor: pointer;
+  padding: var(--spacing-xs);
+}
+
+.theme-selector::before {
+  content: '🎨 ';
+  color: var(--primary-color);
+}
+
+/* Theme preview cards */
+.theme-preview {
+  display: inline-block;
+  width: 120px;
+  height: 80px;
+  margin: var(--spacing-xs);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  position: relative;
+  overflow: hidden;
+  border: 3px solid transparent;
+}
+
+.theme-preview:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-lg);
+}
+
+.theme-preview.selected {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 15px rgba(139, 69, 19, 0.5);
+}
+
+.theme-preview-biblical {
+  background: linear-gradient(135deg, #2E8B57, #8B4513);
+}
+
+.theme-preview-medieval {
+  background: linear-gradient(135deg, #2F4F4F, #8B0000);
+}
+
+.theme-preview-dark {
+  background: linear-gradient(135deg, #121212, #BB86FC);
+}
+
+.theme-preview-light {
+  background: linear-gradient(135deg, #E3F2FD, #1976D2);
+}
+
+.theme-preview-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.7);
+  color: white;
+  text-align: center;
+  padding: var(--spacing-xs);
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+/* Seasonal themes */
+.theme-christmas {
+  --primary-color: #C41E3A;
+  --secondary-color: #228B22;
+  --background-color: #2F4F4F;
+  --angel-space: #FFD700;
+  --demon-space: #8B0000;
+}
+
+.theme-christmas .center-area {
+  background: linear-gradient(135deg, #C41E3A, #228B22);
+}
+
+.theme-easter {
+  --primary-color: #9370DB;
+  --secondary-color: #FFD700;
+  --background-color: #F0E68C;
+  --angel-space: #FFD700;
+  --demon-space: #8B0000;
+}
+
+.theme-easter .center-area {
+  background: linear-gradient(135deg, #9370DB, #FFD700);
+}
+
+/* High contrast theme for accessibility */
+.theme-high-contrast {
+  --primary-color: #000000;
+  --secondary-color: #FFFF00;
+  --background-color: #FFFFFF;
+  --surface-color: #FFFFFF;
+  --text-color: #000000;
+  --text-light: #000000;
+  --text-dark: #000000;
+  --text-inverse: #FFFFFF;
+  --board-background: #FFFFFF;
+  --board-border: #000000;
+  --success-color: #008000;
+  --warning-color: #FF8000;
+  --error-color: #FF0000;
+  --info-color: #0000FF;
+}
+
+.theme-high-contrast .location {
+  border: 3px solid #000000;
+}
+
+.theme-high-contrast .special-space {
+  background: #000000 !important;
+  color: #FFFFFF !important;
+}
+
+/* Theme animations and transitions */
+@media (prefers-reduced-motion: no-preference) {
+  .theme-biblical .angel-space {
+    animation: heavenlyGlow 3s ease-in-out infinite alternate;
+  }
+  
+  .theme-biblical .demon-space {
+    animation: infernalPulse 2s ease-in-out infinite alternate;
+  }
+  
+  .theme-medieval .blessing-space {
+    animation: divineLight 4s ease-in-out infinite alternate;
+  }
+  
+  .theme-medieval .curse-space {
+    animation: darkEnergy 2.5s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes heavenlyGlow {
+  0% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+  100% { box-shadow: 0 0 30px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 255, 255, 0.3); }
+}
+
+@keyframes infernalPulse {
+  0% { box-shadow: 0 0 10px rgba(139, 0, 0, 0.5); }
+  100% { box-shadow: 0 0 25px rgba(139, 0, 0, 0.8), 0 0 35px rgba(255, 0, 0, 0.4); }
+}
+
+@keyframes divineLight {
+  0% { box-shadow: 0 0 15px rgba(255, 215, 0, 0.4); }
+  100% { box-shadow: 0 0 35px rgba(255, 215, 0, 0.7), 0 0 45px rgba(255, 255, 255, 0.2); }
+}
+
+@keyframes darkEnergy {
+  0% { box-shadow: 0 0 12px rgba(139, 0, 0, 0.4); }
+  100% { box-shadow: 0 0 28px rgba(139, 0, 0, 0.7), 0 0 38px rgba(75, 0, 0, 0.3); }
+}
+
+/* Theme-specific typography */
+.theme-biblical {
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+.theme-biblical .center-title,
+.theme-biblical .panel-title,
+.theme-biblical .trivia-location {
+  font-family: 'Cinzel', Georgia, serif;
+  letter-spacing: 1px;
+}
+
+.theme-medieval {
+  font-family: 'Uncial Antiqua', 'Cinzel', serif;
+}
+
+.theme-medieval .center-title,
+.theme-medieval .panel-title {
+  font-family: 'Uncial Antiqua', serif;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+.theme-dark {
+  font-family: 'Roboto', 'Segoe UI', sans-serif;
+}
+
+.theme-light {
+  font-family: 'Open Sans', 'Segoe UI', sans-serif;
+}
+
+/* Theme-specific cursor styles */
+.theme-biblical {
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="%23FFD700" stroke="%23B8860B" stroke-width="2"/></svg>'), auto;
+}
+
+.theme-medieval {
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><polygon points="10,2 12,8 18,8 13,12 15,18 10,14 5,18 7,12 2,8 8,8" fill="%23FFD700" stroke="%238B0000" stroke-width="1"/></svg>'), auto;
+}
+
+/* Theme-specific background patterns */
+.theme-biblical .game-board::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 20% 20%, rgba(255, 215, 0, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(255, 215, 0, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.theme-medieval .game-board::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 10px,
+      rgba(139, 0, 0, 0.05) 10px,
+      rgba(139, 0, 0, 0.05) 20px
+    );
+  pointer-events: none;
+}
+
+/* Theme-specific modal styles */
+.theme-biblical .modal-content {
+  background: linear-gradient(135deg, #FFF8DC, #F5F5DC);
+  border: 3px solid var(--primary-color);
+}
+
+.theme-biblical .modal-header {
+  color: var(--primary-color);
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+.theme-medieval .modal-content {
+  background: linear-gradient(135deg, #2F2F2F, #1C1C1C);
+  border: 3px solid var(--secondary-color);
+  color: var(--secondary-color);
+}
+
+.theme-medieval .modal-header {
+  color: var(--secondary-color);
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+}
+
+/* Theme-specific button styles */
+.theme-biblical .control-button {
+  background: linear-gradient(135deg, var(--primary-color), #A0522D);
+  border: 2px solid #8B4513;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.theme-biblical .control-button:hover {
+  background: linear-gradient(135deg, #A0522D, var(--primary-color));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.theme-medieval .control-button {
+  background: linear-gradient(135deg, var(--primary-color), #660000);
+  border: 2px solid var(--secondary-color);
+  color: var(--secondary-color);
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+}
+
+.theme-medieval .control-button:hover {
+  background: linear-gradient(135deg, #660000, var(--primary-color));
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+/* Theme-specific trivia styles */
+.theme-biblical .character-header {
+  background: linear-gradient(135deg, var(--success-color), #2E7D32);
+  position: relative;
+}
+
+.theme-biblical .character-header::before {
+  content: '📜';
+  margin-right: var(--spacing-xs);
+}
+
+.theme-medieval .character-header {
+  background: linear-gradient(135deg, var(--primary-color), #660000);
+  color: var(--secondary-color);
+}
+
+.theme-medieval .character-header::before {
+  content: '⚔️';
+  margin-right: var(--spacing-xs);
+}
+
+/* Theme-specific card designs */
+.theme-biblical .card-modal.angel .card-modal-content {
+  background: 
+    radial-gradient(circle at top, rgba(255,255,255,0.3) 0%, transparent 70%),
+    linear-gradient(135deg, var(--secondary-color), #FFF8DC);
+}
+
+.theme-biblical .card-modal.demon .card-modal-content {
+  background: 
+    radial-gradient(circle at center, rgba(255,0,0,0.2) 0%, transparent 70%),
+    linear-gradient(135deg, var(--demon-space), #2F0000);
+}
+
+.theme-medieval .card-modal.angel .card-modal-content {
+  background: 
+    repeating-linear-gradient(
+      0deg,
+      var(--secondary-color),
+      var(--secondary-color) 2px,
+      #FFF8DC 2px,
+      #FFF8DC 4px
+    ),
+    linear-gradient(135deg, var(--secondary-color), #FFF8DC);
+  background-blend-mode: multiply;
+}
+
+/* Theme-specific responsive adjustments */
+@media (max-width: 768px) {
+  .theme-biblical .center-title {
+    font-size: 1rem;
+  }
+  
+  .theme-medieval .center-title {
+    font-size: 0.9rem;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+  }
+  
+  .theme-selector {
+    top: 10px;
+    right: 10px;
+    padding: var(--spacing-xs);
+  }
+}
+
+/* Theme-specific print styles */
+@media print {
+  .theme-biblical .game-board {
+    background: white;
+    border-color: black;
+  }
+  
+  .theme-biblical .location-header {
+    background: white !important;
+    color: black !important;
+    border: 1px solid black;
+  }
+  
+  .theme-medieval .game-board {
+    background: white;
+    border-color: black;
+  }
+  
+  .theme-medieval .location-header {
+    background: white !important;
+    color: black !important;
+    border: 1px solid black;
+  }
+}
+
+/* Dynamic theme switching */
+.theme-switching {
+  animation: themeTransition 0.5s ease-in-out;
+}
+
+@keyframes themeTransition {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+/* Theme accessibility enhancements */
+.theme-biblical.high-contrast {
+  --primary-color: #000000;
+  --secondary-color: #FFFF00;
+  --background-color: #FFFFFF;
+}
+
+.theme-medieval.high-contrast {
+  --primary-color: #FFFFFF;
+  --secondary-color: #FFFF00;
+  --background-color: #000000;
+}
+
+/* Theme-specific focus indicators */
+.theme-biblical *:focus {
+  outline: 3px solid var(--secondary-color);
+  outline-offset: 2px;
+}
+
+.theme-medieval *:focus {
+  outline: 3px solid var(--secondary-color);
+  outline-offset: 2px;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+/* Theme-specific selection colors */
+.theme-biblical ::selection {
+  background: var(--secondary-color);
+  color: var(--primary-color);
+}
+
+.theme-medieval ::selection {
+  background: var(--secondary-color);
+  color: var(--primary-color);
+}
+
+/* Custom scrollbar styles per theme */
+.theme-biblical ::-webkit-scrollbar {
+  width: 12px;
+}
+
+.theme-biblical ::-webkit-scrollbar-track {
+  background: var(--board-background);
+  border-radius: var(--radius-md);
+}
+
+.theme-biblical ::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, var(--primary-color), #A0522D);
+  border-radius: var(--radius-md);
+  border: 2px solid var(--board-background);
+}
+
+.theme-biblical ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #A0522D, var(--primary-color));
+}
+
+.theme-medieval ::-webkit-scrollbar {
+  width: 12px;
+}
+
+.theme-medieval ::-webkit-scrollbar-track {
+  background: #2F2F2F;
+  border-radius: var(--radius-md);
+}
+
+.theme-medieval ::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, var(--primary-color), #660000);
+  border-radius: var(--radius-md);
+  border: 2px solid #2F2F2F;
+}
+
+.theme-medieval ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #660000, var(--primary-color));
+  box-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
+}
