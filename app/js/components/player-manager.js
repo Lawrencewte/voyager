@@ -1,40 +1,52 @@
-// js/components/player-manager.js - Updated with auto-loading trivia support
-import { useEffect, useRef, useState } from 'react';
+// js/components/player-manager.js - Enhanced with manual helper management
+import React, { useEffect, useRef, useState } from 'react';
 import {
-    Alert,
-    Dimensions,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  Animated,
+  Dimensions,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
 const PlayerManager = ({ 
-  gameState, 
-  onUpdateGameState, 
-  onAddPlayer, 
-  onRemovePlayer, 
-  onRollDice, 
-  onEndTurn, 
-  onNewGame,
-  config, 
-  showOnlyControls = false,    // Add this
-  showOnlyPlayers = false  // Add this
+  gameState = {},
+  onUpdateGameState = () => {},
+  onAddPlayer = () => {},
+  onRemovePlayer = () => {},
+  onRollDice = () => {},
+  onEndTurn = () => {},
+  onNewGame = () => {},
+  onShowThemeSelector = null,
+  onToggleManualMove = null,
+  manualMoveMode = false,
+  config = {},
+  currentTheme = 'biblical',
+  showOnlyControls = false,
+  showOnlyPlayers = false
 }) => {
   const [showPlayerModal, setShowPlayerModal] = useState(false);
   const [showRulesModal, setShowRulesModal] = useState(false);
+  const [showHelperModal, setShowHelperModal] = useState(false);
+  const [selectedPlayerIndex, setSelectedPlayerIndex] = useState(0);
   const [newPlayerName, setNewPlayerName] = useState('');
   const [selectedColor, setSelectedColor] = useState('#FF4444');
   const [selectedShape, setSelectedShape] = useState('⭐');
+  const [newHelperName, setNewHelperName] = useState('');
+  const [selectedHelper, setSelectedHelper] = useState('');
   
   // Refs for auto-scrolling
   const playersScrollViewRef = useRef(null);
   const playerRefs = useRef({});
+
+  // Animation state for dice
+  const rotateValue = useRef(new Animated.Value(0)).current;
 
   const colors = [
     '#FF4444', '#4444FF', '#44FF44', '#FFAA00', '#FF6B6B', '#4ECDC4',
@@ -47,8 +59,31 @@ const PlayerManager = ({
     '🔥', '💎', '🌟', '🏆', '🎪', '🎭', '🎨', '🎵'
   ];
 
+  // Available helpers for manual adding - comprehensive biblical character list
+  const availableHelpers = [
+    "Abraham", "Sarah", "Isaac", "Rebecca", "Jacob", "Rachel", "Leah", "Joseph",
+    "Moses", "Aaron", "Miriam", "Joshua", "Caleb", "Rahab", "Deborah", "Gideon",
+    "Samson", "Ruth", "Samuel", "Saul", "David", "Solomon", "Elijah", "Elisha",
+    "Isaiah", "Jeremiah", "Ezekiel", "Daniel", "Hosea", "Joel", "Amos", "Obadiah",
+    "Jonah", "Micah", "Nahum", "Habakkuk", "Zephaniah", "Haggai", "Zechariah", "Malachi",
+    "Ezra", "Nehemiah", "Esther", "Mordecai", "Job", "Noah", "Enoch", "Melchizedek",
+    "Hagar", "Lot", "Laban", "Eli", "Hannah", "Nathan", "Bathsheba", "Absalom",
+    "Joab", "Abigail", "Mary", "Martha", "Lazarus", "John the Baptist", "Peter",
+    "Paul", "Barnabas", "Timothy", "Silas", "Luke", "Mark", "Matthew", "John",
+    "James", "Andrew", "Philip", "Thomas", "Bartholomew", "Simon", "Judas Iscariot",
+    "Matthias", "Stephen", "Philip the Evangelist", "Cornelius", "Lydia", "Priscilla",
+    "Aquila", "Apollos", "Titus", "Philemon", "Onesimus"
+  ].sort();
+
+  // Safe access to gameState properties
+  const players = gameState?.players || [];
+  const currentPlayerIndex = gameState?.currentPlayerIndex || 0;
+  const turnNumber = gameState?.turnNumber || 1;
+  const lastRoll = gameState?.lastRoll || 0;
+  const isRolling = gameState?.isRolling || false;
+
   const handleAddPlayer = () => {
-    if (gameState.players.length >= 6) {
+    if (players.length >= 6) {
       Alert.alert('Maximum Players', 'Maximum 6 players allowed!');
       return;
     }
@@ -56,9 +91,9 @@ const PlayerManager = ({
   };
 
   const confirmAddPlayer = () => {
-    const playerName = newPlayerName.trim() || `Player ${gameState.players.length + 1}`;
+    const playerName = newPlayerName.trim() || `Player ${players.length + 1}`;
     
-    if (gameState.players.some(p => p.name === playerName)) {
+    if (players.some(p => p?.name === playerName)) {
       Alert.alert('Duplicate Name', 'A player with this name already exists!');
       return;
     }
@@ -75,134 +110,338 @@ const PlayerManager = ({
     setShowPlayerModal(false);
   };
 
-  const updatePlayerStat = (playerIndex, stat, value) => {
-    const numValue = Math.max(0, parseInt(value) || 0);
-    const updatedPlayers = gameState.players.map((player, index) =>
-      index === playerIndex ? { ...player, [stat]: numValue } : player
-    );
+  // Manual helper management functions
+  const openHelperModal = (playerIndex) => {
+    setSelectedPlayerIndex(playerIndex);
+    setSelectedHelper('');
+    setNewHelperName('');
+    setShowHelperModal(true);
+  };
 
-    onUpdateGameState({ players: updatedPlayers });
+  const addHelperToPlayer = () => {
+    if (!selectedHelper && !newHelperName.trim()) {
+      Alert.alert('Select Helper', 'Please select a helper from the list or enter a custom name.');
+      return;
+    }
+
+    const helperName = selectedHelper || newHelperName.trim();
+    const player = players[selectedPlayerIndex];
+    
+    if (!player) return;
+
+    // Update player helpers
+    const updatedPlayers = players.map((p, index) => {
+      if (index === selectedPlayerIndex) {
+        const newHelpers = { ...p.helpers };
+        if (!newHelpers[helperName]) {
+          newHelpers[helperName] = 1;
+        } else {
+          newHelpers[helperName] = Math.min(10, newHelpers[helperName] + 1);
+        }
+        return { ...p, helpers: newHelpers };
+      }
+      return p;
+    });
+
+    onUpdateGameState({ 
+      ...gameState, 
+      players: updatedPlayers 
+    });
+
+    // Check if helper was just recruited
+    const newPoints = (player.helpers[helperName] || 0) + 1;
+    if (newPoints === 3) {
+      Alert.alert('Helper Recruited!', `${player.name} has recruited ${helperName} as a Helper!`);
+    }
+
+    setSelectedHelper('');
+    setNewHelperName('');
+    setShowHelperModal(false);
+  };
+
+  const adjustHelperPoints = (playerIndex, helperName, adjustment) => {
+    const player = players[playerIndex];
+    if (!player || !player.helpers[helperName]) return;
+
+    const updatedPlayers = players.map((p, index) => {
+      if (index === playerIndex) {
+        const newHelpers = { ...p.helpers };
+        const newPoints = Math.max(0, Math.min(10, newHelpers[helperName] + adjustment));
+        
+        if (newPoints === 0) {
+          delete newHelpers[helperName];
+        } else {
+          newHelpers[helperName] = newPoints;
+        }
+        
+        return { ...p, helpers: newHelpers };
+      }
+      return p;
+    });
+
+    onUpdateGameState({ 
+      ...gameState, 
+      players: updatedPlayers 
+    });
+  };
+
+  const removeHelper = (playerIndex, helperName) => {
+    Alert.alert(
+      'Remove Helper',
+      `Remove ${helperName} as a helper for ${players[playerIndex]?.name}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Remove', 
+          style: 'destructive',
+          onPress: () => {
+            const updatedPlayers = players.map((p, index) => {
+              if (index === playerIndex) {
+                const newHelpers = { ...p.helpers };
+                delete newHelpers[helperName];
+                return { ...p, helpers: newHelpers };
+              }
+              return p;
+            });
+
+            onUpdateGameState({ 
+              ...gameState, 
+              players: updatedPlayers 
+            });
+          }
+        }
+      ]
+    );
+  };
+
+  // Position-safe player stat updates
+  const updatePlayerStat = (playerIndex, stat, value) => {
+    if (!players[playerIndex]) return;
+    
+    const numValue = Math.max(0, parseInt(value) || 0);
+    
+    const updatedPlayers = players.map((player, index) => {
+      if (index === playerIndex) {
+        return {
+          ...player,
+          [stat]: numValue
+        };
+      }
+      return player;
+    });
+
+    onUpdateGameState({ 
+      ...gameState, 
+      players: updatedPlayers 
+    });
 
     if (stat === 'sacrificePoints' && numValue >= 40) {
       setTimeout(() => {
-        Alert.alert('Winner!', `🎉 ${gameState.players[playerIndex].name} wins! 🎉`);
+        Alert.alert('Winner!', `🎉 ${players[playerIndex]?.name} wins! 🎉`);
       }, 100);
     }
   };
 
   const handleRollDice = () => {
-    if (gameState.isRolling || gameState.players.length === 0) return;
+    if (isRolling || players.length === 0) return;
+    
+    // Start dice animation
+    rotateValue.setValue(0);
+    Animated.timing(rotateValue, {
+      toValue: 1,
+      duration: 1000,
+      useNativeDriver: true,
+    }).start();
+    
     onRollDice();
   };
 
   const handleEndTurn = () => {
-    if (gameState.players.length === 0) return;
+    if (players.length === 0) return;
     onEndTurn();
   };
 
-  const currentPlayer = gameState.players[gameState.currentPlayerIndex];
-  const currentLocation = config?.boardPositions?.[currentPlayer?.position];
+  const handleNewGame = () => {
+    Alert.alert(
+      'New Game',
+      'Start a new game? This will remove all players and reset the turn count.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'New Game', 
+          onPress: () => {
+            try {
+              onUpdateGameState({
+                players: [],
+                currentPlayerIndex: 0,
+                turnNumber: 1,
+                lastRoll: 0,
+                isRolling: false,
+                currentCard: null,
+                selectedLocation: null,
+                answeredQuestions: new Set(),
+                claimedHelpers: new Set()
+              });
+              
+              setTimeout(() => {
+                Alert.alert('New Game Started!', 'All players removed and turn count reset. Add players to begin!');
+              }, 100);
+              
+            } catch (error) {
+              console.error('Error resetting game:', error);
+              Alert.alert('Error', 'Failed to reset game');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  // Create interpolated rotation value for dice animation
+  const rotateInterpolate = rotateValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '720deg'],
+  });
+
+  // Safe access to current player and location
+  const currentPlayer = players[currentPlayerIndex] || null;
+  const currentLocation = config?.boardPositions?.[currentPlayer?.position] || null;
 
   // Auto-scroll to current player when turn changes
   useEffect(() => {
-    if (gameState.players.length > 0 && playersScrollViewRef.current && gameState.currentPlayerIndex !== undefined) {
-      const currentPlayerId = gameState.players[gameState.currentPlayerIndex]?.id;
+    if (players.length > 0 && playersScrollViewRef.current && currentPlayerIndex !== undefined) {
+      const currentPlayerId = players[currentPlayerIndex]?.id;
       const currentPlayerRef = playerRefs.current[currentPlayerId];
       
       if (currentPlayerRef) {
-        // Small delay to ensure the UI has updated
         setTimeout(() => {
-          currentPlayerRef.measureLayout(
-            playersScrollViewRef.current.getInnerViewNode(),
-            (x, y, width, height) => {
-              playersScrollViewRef.current?.scrollTo({
-                y: Math.max(0, y - 50), // Scroll with some padding above
-                animated: true
-              });
-            },
-            () => {
-              // Fallback if measureLayout fails - scroll to approximate position
-              const playerHeight = 120; // Approximate height of each player section
-              const scrollPosition = gameState.currentPlayerIndex * playerHeight;
-              playersScrollViewRef.current?.scrollTo({
-                y: Math.max(0, scrollPosition - 50),
-                animated: true
-              });
-            }
-          );
+          try {
+            currentPlayerRef.measureLayout(
+              playersScrollViewRef.current.getInnerViewNode(),
+              (x, y, width, height) => {
+                playersScrollViewRef.current?.scrollTo({
+                  y: Math.max(0, y - 50),
+                  animated: true
+                });
+              },
+              () => {
+                const playerHeight = 120;
+                const scrollPosition = currentPlayerIndex * playerHeight;
+                playersScrollViewRef.current?.scrollTo({
+                  y: Math.max(0, scrollPosition - 50),
+                  animated: true
+                });
+              }
+            );
+          } catch (error) {
+            console.warn('Auto-scroll failed:', error);
+          }
         }, 100);
       }
     }
-  }, [gameState.currentPlayerIndex, gameState.players.length]);
+  }, [currentPlayerIndex, players.length]);
 
   // Clear player refs when players change
   useEffect(() => {
-    const currentPlayerIds = new Set(gameState.players.map(p => p.id));
-    // Remove refs for players that no longer exist
+    const currentPlayerIds = new Set(players.map(p => p?.id).filter(id => id != null));
     Object.keys(playerRefs.current).forEach(playerId => {
       if (!currentPlayerIds.has(parseInt(playerId))) {
         delete playerRefs.current[playerId];
       }
     });
-  }, [gameState.players]);
+  }, [players]);
 
   return (
     <View style={styles.container}>
-      {/* Show controls section only if showOnlyControls is true or neither flag is set */}
+      {/* Controls Section */}
       {(showOnlyControls || (!showOnlyControls && !showOnlyPlayers)) && (
         <>
           <Text style={styles.panelTitle}>🎮 Game Controls</Text>
           
-          {/* Control Buttons */}
           <View style={styles.controlButtons}>
-            <TouchableOpacity style={styles.controlButton} onPress={onNewGame}>
+            <TouchableOpacity style={styles.controlButton} onPress={handleNewGame}>
               <Text style={styles.controlButtonText}>New Game</Text>
             </TouchableOpacity>
+
             <TouchableOpacity style={styles.controlButton} onPress={handleAddPlayer}>
               <Text style={styles.controlButtonText}>Add Player</Text>
             </TouchableOpacity>
+            
             <TouchableOpacity style={styles.controlButton} onPress={onRemovePlayer}>
               <Text style={styles.controlButtonText}>Remove Player</Text>
             </TouchableOpacity>
+            
             <TouchableOpacity style={styles.controlButton} onPress={() => setShowRulesModal(true)}>
               <Text style={styles.controlButtonText}>Rules</Text>
             </TouchableOpacity>
-          </View>
+            
+            {onShowThemeSelector && (
+              <TouchableOpacity 
+                style={[styles.controlButton, styles.themeButton]} 
+                onPress={onShowThemeSelector}
+              >
+                <Text style={styles.controlButtonText}>
+                  {currentTheme === 'biblical' ? '📖' : '🏰'} Theme
+                </Text>
+              </TouchableOpacity>
+            )}
 
-          {/* Current Turn Info */}
-          <View style={styles.turnInfo}>
-            <Text style={styles.turnTitle}>Current Turn</Text>
-            <Text style={styles.currentPlayerText}>{currentPlayer?.name || 'No Players'}</Text>
-            <Text style={styles.turnNumber}>Turn {gameState.turnNumber}</Text>
-          </View>
-
-          {/* Dice Container */}
-          <View style={styles.diceContainer}>
-            <TouchableOpacity 
-              style={[styles.dice, gameState.isRolling && styles.rollingDice]} 
-              onPress={handleRollDice}
-              disabled={gameState.isRolling || gameState.players.length === 0}
-            >
-              <Text style={styles.diceText}>
-                {gameState.lastRoll || '🎲'}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[
-                styles.rollButton, 
-                (gameState.isRolling || gameState.players.length === 0) && styles.disabledButton
-              ]} 
-              onPress={handleRollDice}
-              disabled={gameState.isRolling || gameState.players.length === 0}
-            >
-              <Text style={styles.rollButtonText}>Roll Dice</Text>
-            </TouchableOpacity>
-            {gameState.lastRoll > 0 && (
-              <Text style={styles.lastRoll}>Rolled: {gameState.lastRoll}</Text>
+            {onToggleManualMove && (
+              <TouchableOpacity 
+                style={[
+                  styles.controlButton, 
+                  styles.manualMoveButton,
+                  manualMoveMode && styles.manualMoveButtonActive
+                ]} 
+                onPress={onToggleManualMove}
+              >
+                <Text style={styles.controlButtonText}>
+                  {manualMoveMode ? '🎯 Manual' : '🎲 Auto'} Move
+                </Text>
+              </TouchableOpacity>
             )}
           </View>
 
-          {/* Current Location */}
+          <View style={styles.turnInfo}>
+            <Text style={styles.turnTitle}>Current Turn</Text>
+            <Text style={styles.currentPlayerText}>{currentPlayer?.name || 'No Players'}</Text>
+            <Text style={styles.turnNumber}>Turn {turnNumber}</Text>
+          </View>
+
+          <View style={styles.diceContainer}>
+            <Animated.View 
+              style={[
+                styles.dice,
+                { transform: [{ rotate: rotateInterpolate }] }
+              ]}
+            >
+              <TouchableOpacity 
+                style={styles.diceInner}
+                onPress={handleRollDice}
+                disabled={isRolling || players.length === 0}
+              >
+                <Text style={styles.diceText}>
+                  {lastRoll || '🎲'}
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
+            
+            <TouchableOpacity 
+              style={[
+                styles.rollButton, 
+                (isRolling || players.length === 0) && styles.disabledButton
+              ]} 
+              onPress={handleRollDice}
+              disabled={isRolling || players.length === 0}
+            >
+              <Text style={styles.rollButtonText}>Roll Dice</Text>
+            </TouchableOpacity>
+            
+            {lastRoll > 0 && (
+              <Text style={styles.lastRoll}>Rolled: {lastRoll}</Text>
+            )}
+          </View>
+
           <View style={styles.locationInfo}>
             <Text style={styles.locationTitle}>Current Location</Text>
             <Text style={styles.currentLocation}>{currentLocation?.name || 'Your Village'}</Text>
@@ -211,24 +450,21 @@ const PlayerManager = ({
             </Text>
           </View>
 
-          {/* End Turn Button */}
           <TouchableOpacity 
-            style={[styles.endTurnButton, gameState.players.length === 0 && styles.disabledButton]} 
+            style={[styles.endTurnButton, players.length === 0 && styles.disabledButton]} 
             onPress={handleEndTurn}
-            disabled={gameState.players.length === 0}
+            disabled={players.length === 0}
           >
             <Text style={styles.endTurnButtonText}>End Turn</Text>
           </TouchableOpacity>
         </>
       )}
 
-      {/* Show players section only if showOnlyPlayers is true or neither flag is set */}
+      {/* Players Section */}
       {(showOnlyPlayers || (!showOnlyControls && !showOnlyPlayers)) && (
         <>
-          {/* Only show title if this is a dedicated players panel */}
           {showOnlyPlayers && <Text style={styles.panelTitle}>👥 Players</Text>}
           
-          {/* Players List */}
           <ScrollView 
             ref={playersScrollViewRef}
             style={styles.playersScrollView} 
@@ -236,95 +472,204 @@ const PlayerManager = ({
             contentContainerStyle={styles.playersScrollContent}
           >
             {!showOnlyPlayers && <Text style={styles.playersTitle}>👥 Players</Text>}
-            {gameState.players.length === 0 ? (
+            
+            {players.length === 0 ? (
               <View style={styles.noPlayersContainer}>
                 <Text style={styles.noPlayersText}>No players yet. Add a player to start!</Text>
               </View>
             ) : (
-              gameState.players.map((player, index) => (
-                <View 
-                  key={player.id} 
-                  ref={(ref) => {
-                    if (ref) {
-                      playerRefs.current[player.id] = ref;
-                    }
-                  }}
-                  style={[
-                    styles.playerSection,
-                    index === gameState.currentPlayerIndex && styles.activePlayerSection
-                  ]}
-                >
-                  <View style={styles.playerHeader}>
-                    <View style={[styles.playerColorIndicator, { backgroundColor: player.color }]} />
-                    <Text style={styles.playerName}>{player.name}</Text>
-                    {player.shape && (
-                      <Text style={styles.playerShape}>{player.shape}</Text>
-                    )}
-                  </View>
-
-                  <View style={styles.statRow}>
-                    <Text style={styles.statLabel}>Position:</Text>
-                    <Text style={styles.statValue} numberOfLines={1} ellipsizeMode="tail">
-                      {config?.boardPositions?.[player.position]?.name || 'Unknown'}
-                    </Text>
-                  </View>
-
-                  <View style={styles.statRow}>
-                    <Text style={styles.statLabel}>SP:</Text>
-                    <TextInput
-                      style={styles.statInput}
-                      value={player.sacrificePoints.toString()}
-                      onChangeText={(value) => updatePlayerStat(index, 'sacrificePoints', value)}
-                      keyboardType="numeric"
-                    />
-                  </View>
-
-                  <View style={styles.statRow}>
-                    <Text style={styles.statLabel}>Livestock:</Text>
-                    <TextInput
-                      style={styles.statInput}
-                      value={player.livestock.toString()}
-                      onChangeText={(value) => updatePlayerStat(index, 'livestock', value)}
-                      keyboardType="numeric"
-                    />
-                  </View>
-
-                  <View style={styles.statRow}>
-                    <Text style={styles.statLabel}>Coins:</Text>
-                    <TextInput
-                      style={styles.statInput}
-                      value={player.coins.toString()}
-                      onChangeText={(value) => updatePlayerStat(index, 'coins', value)}
-                      keyboardType="numeric"
-                    />
-                  </View>
-
-                  {/* Helpers Section - Simplified for space */}
-                  <View style={styles.helperSection}>
-                    <Text style={styles.helperTitle}>Helpers:</Text>
-                    <View style={styles.helperList}>
-                      {Object.keys(player.helpers).length > 0 ? (
-                        Object.keys(player.helpers).map(helperName => (
-                          <View key={helperName} style={styles.helperItem}>
-                            <Text style={styles.helperName} numberOfLines={1}>{helperName}</Text>
-                            <Text style={styles.helperPoints}>
-                              {player.helpers[helperName]}/3 {player.helpers[helperName] >= 3 ? '✅' : ''}
-                            </Text>
-                          </View>
-                        ))
-                      ) : (
-                        <Text style={styles.noHelpersText}>No helpers yet</Text>
+              players.map((player, index) => {
+                if (!player) return null;
+                
+                return (
+                  <View 
+                    key={player.id || index} 
+                    ref={(ref) => {
+                      if (ref && player.id) {
+                        playerRefs.current[player.id] = ref;
+                      }
+                    }}
+                    style={[
+                      styles.playerSection,
+                      index === currentPlayerIndex && styles.activePlayerSection
+                    ]}
+                  >
+                    <View style={styles.playerHeader}>
+                      <View style={[
+                        styles.playerColorIndicator, 
+                        { backgroundColor: player.color || '#FF4444' }
+                      ]} />
+                      <Text style={styles.playerName}>{player.name || `Player ${index + 1}`}</Text>
+                      {player.shape && (
+                        <Text style={styles.playerShape}>{player.shape}</Text>
                       )}
                     </View>
+
+                    <View style={styles.statRow}>
+                      <Text style={styles.statLabel}>Position:</Text>
+                      <Text style={styles.statValue} numberOfLines={1} ellipsizeMode="tail">
+                        {config?.boardPositions?.[player.position]?.name || 'Unknown'}
+                      </Text>
+                    </View>
+
+                    <View style={styles.statRow}>
+                      <Text style={styles.statLabel}>SP:</Text>
+                      <TextInput
+                        style={styles.statInput}
+                        value={(player.sacrificePoints || 0).toString()}
+                        onChangeText={(value) => updatePlayerStat(index, 'sacrificePoints', value)}
+                        keyboardType="numeric"
+                      />
+                    </View>
+
+                    <View style={styles.statRow}>
+                      <Text style={styles.statLabel}>Livestock:</Text>
+                      <TextInput
+                        style={styles.statInput}
+                        value={(player.livestock || 0).toString()}
+                        onChangeText={(value) => updatePlayerStat(index, 'livestock', value)}
+                        keyboardType="numeric"
+                      />
+                    </View>
+
+                    <View style={styles.statRow}>
+                      <Text style={styles.statLabel}>Coins:</Text>
+                      <TextInput
+                        style={styles.statInput}
+                        value={(player.coins || 0).toString()}
+                        onChangeText={(value) => updatePlayerStat(index, 'coins', value)}
+                        keyboardType="numeric"
+                      />
+                    </View>
+
+                    <View style={styles.helperSection}>
+                      <View style={styles.helperHeader}>
+                        <Text style={styles.helperTitle}>Helpers:</Text>
+                        <TouchableOpacity 
+                          style={styles.addHelperButton}
+                          onPress={() => openHelperModal(index)}
+                        >
+                          <Text style={styles.addHelperButtonText}>+ Add</Text>
+                        </TouchableOpacity>
+                      </View>
+                      
+                      <ScrollView 
+                        style={styles.helperList}
+                        nestedScrollEnabled={true}
+                        showsVerticalScrollIndicator={false}
+                      >
+                        {player.helpers && Object.keys(player.helpers).length > 0 ? (
+                          Object.keys(player.helpers).map(helperName => (
+                            <View key={helperName} style={styles.helperItem}>
+                              <Text style={styles.helperName} numberOfLines={1}>{helperName}</Text>
+                              <View style={styles.helperControls}>
+                                <TouchableOpacity 
+                                  style={styles.helperButton}
+                                  onPress={() => adjustHelperPoints(index, helperName, -1)}
+                                >
+                                  <Text style={styles.helperButtonText}>-</Text>
+                                </TouchableOpacity>
+                                
+                                <Text style={styles.helperPoints}>
+                                  {player.helpers[helperName] || 0}/3 {(player.helpers[helperName] || 0) >= 3 ? '✅' : ''}
+                                </Text>
+                                
+                                <TouchableOpacity 
+                                  style={styles.helperButton}
+                                  onPress={() => adjustHelperPoints(index, helperName, 1)}
+                                >
+                                  <Text style={styles.helperButtonText}>+</Text>
+                                </TouchableOpacity>
+                                
+                                <TouchableOpacity 
+                                  style={styles.removeHelperButton}
+                                  onPress={() => removeHelper(index, helperName)}
+                                >
+                                  <Text style={styles.removeHelperButtonText}>×</Text>
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+                          ))
+                        ) : (
+                          <Text style={styles.noHelpersText}>No helpers yet</Text>
+                        )}
+                      </ScrollView>
+                    </View>
                   </View>
-                </View>
-              ))
+                );
+              })
             )}
           </ScrollView>
         </>
       )}
 
-      {/* Modals - always show regardless of flags */}
+      {/* Helper Management Modal */}
+      <Modal
+        visible={showHelperModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowHelperModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              👥 Add Helper to {players[selectedPlayerIndex]?.name}
+            </Text>
+            
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Select from Biblical Characters:</Text>
+              <ScrollView style={styles.helperPickerContainer} showsVerticalScrollIndicator={false}>
+                <View style={styles.helperPicker}>
+                  {availableHelpers.map(helper => (
+                    <TouchableOpacity
+                      key={helper}
+                      style={[
+                        styles.helperPickerOption,
+                        selectedHelper === helper && styles.selectedHelperPickerOption
+                      ]}
+                      onPress={() => setSelectedHelper(helper)}
+                    >
+                      <Text style={[
+                        styles.helperPickerText,
+                        selectedHelper === helper && styles.selectedHelperPickerText
+                      ]}>
+                        {helper}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Or Enter Custom Helper Name:</Text>
+              <TextInput
+                style={styles.textInput}
+                value={newHelperName}
+                onChangeText={setNewHelperName}
+                placeholder="Enter custom helper name..."
+                maxLength={30}
+              />
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setShowHelperModal(false)}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={addHelperToPlayer}
+              >
+                <Text style={styles.modalButtonText}>Add Helper</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Player Creation Modal */}
       <Modal
         visible={showPlayerModal}
@@ -349,41 +694,37 @@ const PlayerManager = ({
 
             <View style={styles.formGroup}>
               <Text style={styles.label}>Choose Marker Color:</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.colorPicker}>
-                  {colors.map(color => (
-                    <TouchableOpacity
-                      key={color}
-                      style={[
-                        styles.colorOption,
-                        { backgroundColor: color },
-                        selectedColor === color && styles.selectedOption
-                      ]}
-                      onPress={() => setSelectedColor(color)}
-                    />
-                  ))}
-                </View>
-              </ScrollView>
+              <View style={styles.colorPicker}>
+                {colors.map(color => (
+                  <TouchableOpacity
+                    key={color}
+                    style={[
+                      styles.colorOption,
+                      { backgroundColor: color },
+                      selectedColor === color && styles.selectedOption
+                    ]}
+                    onPress={() => setSelectedColor(color)}
+                  />
+                ))}
+              </View>
             </View>
 
             <View style={styles.formGroup}>
               <Text style={styles.label}>Choose Marker Shape:</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.shapePicker}>
-                  {shapes.map(shape => (
-                    <TouchableOpacity
-                      key={shape}
-                      style={[
-                        styles.shapeOption,
-                        selectedShape === shape && styles.selectedShapeOption
-                      ]}
-                      onPress={() => setSelectedShape(shape)}
-                    >
-                      <Text style={styles.shapeText}>{shape}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
+              <View style={styles.shapePicker}>
+                {shapes.map(shape => (
+                  <TouchableOpacity
+                    key={shape}
+                    style={[
+                      styles.shapeOption,
+                      selectedShape === shape && styles.selectedShapeOption
+                    ]}
+                    onPress={() => setSelectedShape(shape)}
+                  >
+                    <Text style={styles.shapeText}>{shape}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
 
             <View style={styles.modalButtons}>
@@ -448,15 +789,15 @@ const PlayerManager = ({
               <View style={styles.rulesSection}>
                 <Text style={styles.rulesSectionTitle}>👥 Helpers</Text>
                 <Text style={styles.rulesText}>
-                  Answer 3 questions from the same biblical character to recruit them as a Helper. Helpers provide hints for questions at their locations. Only one player can have each Helper - first to recruit them claims them permanently.
+                  Answer 3 questions from the same biblical character to recruit them as a Helper. Helpers provide hints for questions at their locations. Only one player can have each Helper - first to recruit them claims them permanently. You can also manually add helpers and adjust helper points using the player controls.
                 </Text>
               </View>
 
               <View style={styles.rulesSection}>
                 <Text style={styles.rulesSectionTitle}>⚡ Special Spaces</Text>
                 <Text style={styles.rulesText}>
-                  • <Text style={styles.bold}>🐺 Wolves Attack:</Text> Roll die, lose that many livestock and SP{'\n'}
-                  • <Text style={styles.bold}>⚔️ Bandits Attack:</Text> Roll die, lose that many coins and SP{'\n'}
+                  • <Text style={styles.bold}>🐺 Wolves Attack:</Text> Roll die, lose that many livestock and SP. You remain at the Wolves space.{'\n'}
+                  • <Text style={styles.bold}>⚔️ Bandits Attack:</Text> Roll die, lose that many coins and SP. You remain at the Bandits space.{'\n'}
                   • <Text style={styles.bold}>👼 Angel Cards:</Text> Beneficial effects and blessings{'\n'}
                   • <Text style={styles.bold}>👹 Demon Cards:</Text> Challenges and setbacks
                 </Text>
@@ -529,6 +870,17 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 3,
   },
+  themeButton: {
+    backgroundColor: '#9C27B0',
+    minWidth: '45%',
+  },
+  manualMoveButton: {
+    backgroundColor: '#FF9800',
+    minWidth: '45%',
+  },
+  manualMoveButtonActive: {
+    backgroundColor: '#F57C00',
+  },
   controlButtonText: {
     color: 'white',
     fontSize: Math.max(11, 12 * scaleFactor),
@@ -584,8 +936,11 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 8,
   },
-  rollingDice: {
-    transform: [{ rotate: '45deg' }],
+  diceInner: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   diceText: {
     fontSize: Math.max(24, 28 * scaleFactor),
@@ -664,7 +1019,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   playersScrollContent: {
-    paddingBottom: 20 * scaleFactor, // Add some bottom padding for better scrolling
+    paddingBottom: 20 * scaleFactor,
   },
   playersTitle: {
     fontSize: Math.max(14, 16 * scaleFactor),
@@ -772,20 +1127,36 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 8 * scaleFactor,
   },
+  helperHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6 * scaleFactor,
+  },
   helperTitle: {
     fontSize: Math.max(10, 12 * scaleFactor),
     fontWeight: 'bold',
-    marginBottom: 6 * scaleFactor,
     color: '#333',
   },
+  addHelperButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 4 * scaleFactor,
+    paddingHorizontal: 8 * scaleFactor,
+    borderRadius: 4,
+  },
+  addHelperButtonText: {
+    color: 'white',
+    fontSize: Math.max(9, 10 * scaleFactor),
+    fontWeight: 'bold',
+  },
   helperList: {
-    maxHeight: 60 * scaleFactor,
+    maxHeight: 80 * scaleFactor,
   },
   helperItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 2 * scaleFactor,
+    paddingVertical: 3 * scaleFactor,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
@@ -795,10 +1166,43 @@ const styles = StyleSheet.create({
     color: '#333',
     marginRight: 8,
   },
+  helperControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4 * scaleFactor,
+  },
+  helperButton: {
+    backgroundColor: '#2196F3',
+    paddingVertical: 2 * scaleFactor,
+    paddingHorizontal: 6 * scaleFactor,
+    borderRadius: 3,
+    minWidth: 20 * scaleFactor,
+    alignItems: 'center',
+  },
+  helperButtonText: {
+    color: 'white',
+    fontSize: Math.max(8, 10 * scaleFactor),
+    fontWeight: 'bold',
+  },
   helperPoints: {
     fontSize: Math.max(9, 11 * scaleFactor),
     fontWeight: 'bold',
     color: '#4CAF50',
+    minWidth: 40 * scaleFactor,
+    textAlign: 'center',
+  },
+  removeHelperButton: {
+    backgroundColor: '#ff6b6b',
+    paddingVertical: 2 * scaleFactor,
+    paddingHorizontal: 6 * scaleFactor,
+    borderRadius: 3,
+    minWidth: 20 * scaleFactor,
+    alignItems: 'center',
+  },
+  removeHelperButtonText: {
+    color: 'white',
+    fontSize: Math.max(8, 10 * scaleFactor),
+    fontWeight: 'bold',
   },
   noHelpersText: {
     fontSize: Math.max(9, 11 * scaleFactor),
@@ -869,6 +1273,7 @@ const styles = StyleSheet.create({
   },
   colorPicker: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10 * scaleFactor,
     paddingVertical: 10 * scaleFactor,
   },
@@ -890,8 +1295,10 @@ const styles = StyleSheet.create({
   },
   shapePicker: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10 * scaleFactor,
     paddingVertical: 10 * scaleFactor,
+    justifyContent: 'space-between',
   },
   shapeOption: {
     width: 45 * scaleFactor,
@@ -915,6 +1322,42 @@ const styles = StyleSheet.create({
   },
   shapeText: {
     fontSize: Math.max(16, 20 * scaleFactor),
+  },
+  // Helper Picker Styles
+  helperPickerContainer: {
+    maxHeight: 150 * scaleFactor,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    backgroundColor: '#f9f9f9',
+  },
+  helperPicker: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    padding: 5 * scaleFactor,
+    gap: 5 * scaleFactor,
+  },
+  helperPickerOption: {
+    paddingVertical: 6 * scaleFactor,
+    paddingHorizontal: 10 * scaleFactor,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 6,
+    backgroundColor: 'white',
+    marginBottom: 5 * scaleFactor,
+  },
+  selectedHelperPickerOption: {
+    borderColor: '#4CAF50',
+    backgroundColor: '#e8f5e8',
+    borderWidth: 2,
+  },
+  helperPickerText: {
+    fontSize: Math.max(12, 14 * scaleFactor),
+    color: '#333',
+  },
+  selectedHelperPickerText: {
+    color: '#2d5a2d',
+    fontWeight: 'bold',
   },
   modalButtons: {
     flexDirection: 'row',

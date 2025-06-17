@@ -1,4 +1,4 @@
-// js/utils/state-manager.js - Cleaned up without undo functionality
+// js/utils/state-manager.js - Enhanced with position-preserving attack handling
 import { angelCards, demonCards } from '../models/card';
 
 export class StateManager {
@@ -16,14 +16,23 @@ export class StateManager {
       demonDeck: this.shuffleDeck([...demonCards]),
       angelDiscard: [],
       demonDiscard: [],
-      selectedLocation: null, // Track selected location for trivia
+      selectedLocation: null,
+      // NEW: Attack state management
+      isAttackInProgress: false,
+      attackState: {
+        isActive: false,
+        type: null,
+        isRolling: false,
+        attackRoll: null,
+        damage: null,
+        expectedPosition: null
+      }
     };
   }
 
   static initializeWithConfig(config) {
     const initialState = this.getInitialState();
     
-    // Add any config-specific initialization here
     if (config.angelCards) {
       initialState.angelDeck = this.shuffleDeck([...config.angelCards]);
     }
@@ -31,7 +40,6 @@ export class StateManager {
       initialState.demonDeck = this.shuffleDeck([...config.demonCards]);
     }
 
-    // Set initial selected location if starting location is a trivia location
     if (config.boardPositions && config.boardPositions[0] && config.boardPositions[0].type === 'location') {
       initialState.selectedLocation = config.boardPositions[0].name;
     }
@@ -42,24 +50,20 @@ export class StateManager {
   static updateState(currentState, updates) {
     const newState = { ...currentState };
 
-    // Apply updates with proper Set handling
     Object.keys(updates).forEach(key => {
       if (key === 'answeredQuestions' || key === 'claimedHelpers') {
-        // For Sets, directly assign the new Set object
         newState[key] = updates[key];
       } else {
         newState[key] = updates[key];
       }
     });
     
-    // Validate state
     return this.validateState(newState);
   }
 
   static validateState(state) {
     const validatedState = { ...state };
 
-    // Ensure arrays exist
     if (!Array.isArray(validatedState.players)) {
       validatedState.players = [];
     }
@@ -70,7 +74,6 @@ export class StateManager {
       validatedState.demonDeck = [...demonCards];
     }
 
-    // Ensure Sets exist - but don't recreate them if they're already Sets
     if (!(validatedState.answeredQuestions instanceof Set)) {
       validatedState.answeredQuestions = new Set();
     }
@@ -78,7 +81,6 @@ export class StateManager {
       validatedState.claimedHelpers = new Set();
     }
 
-    // Validate player index
     if (validatedState.currentPlayerIndex >= validatedState.players.length) {
       validatedState.currentPlayerIndex = 0;
     }
@@ -86,12 +88,23 @@ export class StateManager {
       validatedState.currentPlayerIndex = 0;
     }
 
-    // Validate numeric values
     if (typeof validatedState.turnNumber !== 'number' || validatedState.turnNumber < 1) {
       validatedState.turnNumber = 1;
     }
     if (typeof validatedState.lastRoll !== 'number' || validatedState.lastRoll < 0) {
       validatedState.lastRoll = 0;
+    }
+
+    // Validate attack state
+    if (!validatedState.attackState || typeof validatedState.attackState !== 'object') {
+      validatedState.attackState = {
+        isActive: false,
+        type: null,
+        isRolling: false,
+        attackRoll: null,
+        damage: null,
+        expectedPosition: null
+      };
     }
 
     return validatedState;
@@ -332,7 +345,17 @@ export class StateManager {
       currentPlayerIndex: nextPlayerIndex,
       turnNumber: nextTurnNumber,
       lastRoll: 0,
-      selectedLocation
+      selectedLocation,
+      // Clear any active attacks when ending turn
+      attackState: {
+        isActive: false,
+        type: null,
+        isRolling: false,
+        attackRoll: null,
+        damage: null,
+        expectedPosition: null
+      },
+      isAttackInProgress: false
     });
   }
 
@@ -342,28 +365,133 @@ export class StateManager {
     });
   }
 
-  static handleAttack(state, attackType, damage) {
+  // NEW: Attack state management functions
+  static initiateAttack(state, attackType, expectedPosition) {
+    return this.updateState(state, {
+      isAttackInProgress: true,
+      attackState: {
+        isActive: true,
+        type: attackType,
+        isRolling: false,
+        attackRoll: null,
+        damage: null,
+        expectedPosition
+      }
+    });
+  }
+
+  static startAttackRoll(state) {
+    return this.updateState(state, {
+      attackState: {
+        ...state.attackState,
+        isRolling: true
+      }
+    });
+  }
+
+  static completeAttackRoll(state, attackRoll, damage) {
+    return this.updateState(state, {
+      attackState: {
+        ...state.attackState,
+        isRolling: false,
+        attackRoll,
+        damage
+      }
+    });
+  }
+
+  static dismissAttack(state) {
+    return this.updateState(state, {
+      isAttackInProgress: false,
+      attackState: {
+        isActive: false,
+        type: null,
+        isRolling: false,
+        attackRoll: null,
+        damage: null,
+        expectedPosition: null
+      }
+    });
+  }
+
+  // ENHANCED: Position-preserving attack handlers
+  static handleWolvesAttack(state, damage, expectedPosition = null) {
     const currentPlayer = state.players[state.currentPlayerIndex];
     if (!currentPlayer) {
       throw new Error('No current player');
     }
 
-    const resourceType = attackType === 'wolves' ? 'livestock' : 'coins';
-    const resourceLoss = Math.min(currentPlayer[resourceType], damage);
+    // Optional position verification
+    if (expectedPosition !== null && currentPlayer.position !== expectedPosition) {
+      console.warn(`Position mismatch during wolves attack: expected ${expectedPosition}, actual ${currentPlayer.position}`);
+    }
+
+    const livestockLoss = Math.min(currentPlayer.livestock, damage);
     const spLoss = Math.min(currentPlayer.sacrificePoints, damage);
 
     const updatedPlayers = state.players.map((player, index) => {
       if (index === state.currentPlayerIndex) {
         return {
           ...player,
-          [resourceType]: Math.max(0, player[resourceType] - damage),
+          // CRITICAL: Do NOT modify position - only update resources
+          livestock: Math.max(0, player.livestock - damage),
           sacrificePoints: Math.max(0, player.sacrificePoints - damage)
+          // position is intentionally omitted to preserve current position
         };
       }
       return player;
     });
 
-    return this.updateState(state, { players: updatedPlayers });
+    return this.updateState(state, { 
+      players: updatedPlayers,
+      lastRoll: damage
+      // Do not update selectedLocation or position-related state
+    });
+  }
+
+  static handleBanditsAttack(state, damage, expectedPosition = null) {
+    const currentPlayer = state.players[state.currentPlayerIndex];
+    if (!currentPlayer) {
+      throw new Error('No current player');
+    }
+
+    // Optional position verification
+    if (expectedPosition !== null && currentPlayer.position !== expectedPosition) {
+      console.warn(`Position mismatch during bandits attack: expected ${expectedPosition}, actual ${currentPlayer.position}`);
+    }
+
+    const coinsLoss = Math.min(currentPlayer.coins, damage);
+    const spLoss = Math.min(currentPlayer.sacrificePoints, damage);
+
+    const updatedPlayers = state.players.map((player, index) => {
+      if (index === state.currentPlayerIndex) {
+        return {
+          ...player,
+          // CRITICAL: Do NOT modify position - only update resources
+          coins: Math.max(0, player.coins - damage),
+          sacrificePoints: Math.max(0, player.sacrificePoints - damage)
+          // position is intentionally omitted to preserve current position
+        };
+      }
+      return player;
+    });
+
+    return this.updateState(state, { 
+      players: updatedPlayers,
+      lastRoll: damage
+      // Do not update selectedLocation or position-related state
+    });
+  }
+
+  // Legacy attack function for backward compatibility - now redirects to specific attack types
+  static handleAttack(state, attackType, damage, expectedPosition = null) {
+    if (attackType === 'wolves' || attackType === 'livestock') {
+      return this.handleWolvesAttack(state, damage, expectedPosition);
+    } else if (attackType === 'bandits' || attackType === 'coins') {
+      return this.handleBanditsAttack(state, damage, expectedPosition);
+    } else {
+      throw new Error(`Unknown attack type: ${attackType}`);
+    }
   }
 
   static rollDice(state, config) {
@@ -417,6 +545,45 @@ export class StateManager {
     return config.boardPositions[position];
   }
 
+  // ENHANCED: Position-safe player resource updates
+  static updatePlayerResources(state, playerIndex, resourceUpdates) {
+    const updatedPlayers = state.players.map((player, index) => {
+      if (index === playerIndex) {
+        // Only update specified resources, preserve position and other data
+        const updatedPlayer = { ...player };
+        Object.keys(resourceUpdates).forEach(resource => {
+          if (resource !== 'position' && resource !== 'id') {
+            updatedPlayer[resource] = resourceUpdates[resource];
+          }
+        });
+        return updatedPlayer;
+      }
+      return player;
+    });
+
+    return this.updateState(state, { players: updatedPlayers });
+  }
+
+  // ENHANCED: Safe current player resource update
+  static updateCurrentPlayerResources(state, resourceUpdates) {
+    return this.updatePlayerResources(state, state.currentPlayerIndex, resourceUpdates);
+  }
+
+  // Position validation helper
+  static validatePlayerPosition(state, playerId, expectedPosition) {
+    const player = state.players.find(p => p.id === playerId);
+    if (!player) {
+      throw new Error(`Player ${playerId} not found`);
+    }
+    
+    if (player.position !== expectedPosition) {
+      console.warn(`Position validation failed: Player ${playerId} expected at ${expectedPosition}, actually at ${player.position}`);
+      return false;
+    }
+    
+    return true;
+  }
+
   static saveGame(state, storageKey = 'voyager_game_state') {
     try {
       const serializedState = {
@@ -426,7 +593,6 @@ export class StateManager {
       };
       
       // In React Native, you would use AsyncStorage here
-      // For now, we'll use a placeholder
       console.log('Game state saved:', serializedState);
       return true;
     } catch (error) {
@@ -438,7 +604,6 @@ export class StateManager {
   static loadGame(storageKey = 'voyager_game_state') {
     try {
       // In React Native, you would use AsyncStorage here
-      // For now, we'll return null to indicate no saved game
       console.log('Loading game state...');
       return null;
     } catch (error) {
@@ -484,7 +649,8 @@ export class StateManager {
       angelDeck: [...state.angelDeck],
       demonDeck: [...state.demonDeck],
       angelDiscard: [...state.angelDiscard],
-      demonDiscard: [...state.demonDiscard]
+      demonDiscard: [...state.demonDiscard],
+      attackState: { ...state.attackState }
     };
   }
 }

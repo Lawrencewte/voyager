@@ -1,8 +1,35 @@
 {
-  "name": "medieval",
-  "title": "Medieval Quest",
-  "description": "Journey through medieval lands and encounter legendary figures",
-  "version": "2.0.0",
+  "theme":{ 
+    "name": "Medieval Quest",
+    "description": "Journey through medieval lands and encounter legendary figures",
+   "colors": {
+      "primary": "#2E8B57",
+      "secondary": "#4682B4",
+      "accent": "#8B4513",
+      "background": "#F5F5DC",
+      "text": "#333333",
+      "border": "#8B4513"
+   },
+   "specialSpaces": {
+      "positive": { "symbol": "⚔️", "name": "Knight's Blessing", "gradient": "linear-gradient(135deg, #FFD700, #FFA500)" },
+      "negative": { "symbol": "🌙", "name": "Curse Card", "gradient": "linear-gradient(135deg, #8B0000, #DC143C)" },
+      "wolves": { "symbol": "🐺", "name": "Wolf Pack Attack", "gradient": "linear-gradient(135deg, #654321, #8B4513)" },
+      "bandits": { "symbol": "⚔️", "name": "Brigand Attack", "gradient": "linear-gradient(135deg, #2F4F4F, #708090)" }
+    }
+  },
+   "game": {
+    "title": "VOYAGER",
+    "subtitle": "Journey to Jerusalem",
+    "description": "First to 40 Sacrifice Points wins! Answer biblical trivia, redeem for offerings, but beware of bandits and wolves!",
+    "victoryCondition": 40,
+    "victoryResource": "Sacrifice Points",
+    "passStartBonus": 5,
+    "resources": {
+      "primary": "sacrificePoints",
+      "secondary": ["livestock", "coins"],
+      "helpers": "helpers"
+    }
+  },
   "boardPositions": [
     {
       "name": "Village Square",
@@ -101,7 +128,7 @@
       "category": "forest"
     },
     {
-      "name": "⚔️ BRIGAND ATTACK",
+      "name": "{⚔️ BRIGAND ATTACK",
       "type": "special",
       "description": "Roll die, lose gold and provisions",
       "category": "danger"
@@ -126,7 +153,7 @@
     },
     {
       "name": "Stratford-upon-Avon",
-      "type": "location",
+      "ty}pe": "location",
       "description": "Market town and birthplace of legends",
       "category": "village"
     },
@@ -407,21 +434,6 @@
       "symbol": "⚒️"
     }
   ],
-  "theme": {
-    "primaryColor": "#8B0000",
-    "secondaryColor": "#FFD700",
-    "backgroundColor": "#2F4F4F",
-    "textColor": "#FFFFFF",
-    "boardBackground": "#DCDCDC",
-    "boardBorder": "#8B0000",
-    "village": "#228B22",
-    "castle": "#8B0000",
-    "monastery": "#4B0082",
-    "forest": "#006400",
-    "blessingSpace": "#FFD700",
-    "curseSpace": "#8B0000",
-    "dangerSpace": "#654321"
-  },
   "rules": {
     "winCondition": 40,
     "startingGold": 0,
@@ -449,5 +461,7 @@
     "questionTimeLimit": 0
   },
   "createdAt": "2024-01-01T00:00:00.000Z",
-  "lastModified": "2024-01-01T00:00:00.000Z"
-}
+    "lastModified": "2024-01-01T00:00:00.000Z"
+    }
+  
+  

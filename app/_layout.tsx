@@ -55,8 +55,25 @@ export default function RootLayout() {
           translucent={false}
         />
         <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />
+          <Stack 
+            screenOptions={{ 
+              headerShown: false,
+              contentStyle: { backgroundColor: '#2E8B57' }
+            }}
+          >
+            <Stack.Screen 
+              name="index" 
+              options={{
+                title: 'Voyager Game',
+              }}
+            />
+            {/* Add other screens here if needed */}
+            <Stack.Screen 
+              name="voyagergame" 
+              options={{
+                title: 'Game Board',
+              }}
+            />
           </Stack>
         </SafeAreaView>
       </View>

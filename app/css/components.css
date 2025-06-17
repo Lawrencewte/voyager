@@ -1,4 +1,4 @@
-/* css/components.css - Component-specific styles */
+/* css/components.css - Component-specific styles with 50px player markers */
 
 /* Game Container */
 .game-container {
@@ -190,14 +190,14 @@
 .prophets .location-header { background: var(--prophets-color); }
 .exile .location-header { background: var(--exile-color); color: var(--primary-color); }
 
-/* Player Markers */
+/* FIXED: Player Markers - Now consistently 50px */
 .player-marker {
   position: absolute;
   width: 50px;
   height: 50px;
-  border-radius: 50%;
-  border: 3px solid var(--text-inverse);
-  font-size: 1.75rem;
+  border-radius: 25px; /* Half of width/height for perfect circle */
+  border: 2px solid var(--text-inverse);
+  font-size: 16px; /* Increased font size for larger markers */
   font-weight: bold;
   color: var(--text-inverse);
   display: flex;
@@ -206,6 +206,16 @@
   z-index: 20;
   transition: all var(--transition-slow);
   box-shadow: var(--shadow-md);
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5); /* Added text shadow for better readability */
+}
+
+/* Enhanced current player highlighting */
+.player-marker.current-player {
+  border-width: 3px;
+  border-color: #FFD700;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+  transform: scale(1.1);
+  z-index: 25;
 }
 
 .player-1 { background: #FF4444; }
@@ -294,17 +304,19 @@
 }
 
 .dice.rolling {
-    animation: roll 1s ease-in-out;
-        }
+  animation: roll 1s ease-in-out;
+}
 
-        @keyframes roll {
-            0% { transform: rotate(0deg); }
-            25% { transform: rotate(90deg); }
-            50% { transform: rotate(180deg); }
-            75% { transform: rotate(270deg); }
-            100% { transform: rotate(360deg); }
-        }
-
+@keyframes roll {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(45deg); }
+  37.5% { transform: rotate(90deg); }
+  50% { transform: rotate(135deg); }
+  62.5% { transform: rotate(180deg); }
+  75% { transform: rotate(225deg); }
+  87.5% { transform: rotate(270deg); }
+  100% { transform: rotate(360deg); }
+}
 
 /* Turn Info */
 .turn-info {
@@ -911,7 +923,6 @@
 .top-left { top: 0; left: 0; }
 .top-1 { top: 0; left: 14.28%; }
 .top-2 { top: 0; left: 28.56%; }
-.top-3 { top: 0; left: 42.84%; }
 .top-4 { top: 0; left: 57.12%; }
 .top-5 { top: 0; left: 71.4%; }
 .top-right { top: 0; right: 0; }
@@ -959,6 +970,14 @@
     max-height: 400px;
     margin: var(--spacing-sm) 0;
   }
+  
+  /* Responsive player markers */
+  .player-marker {
+    width: 40px;
+    height: 40px;
+    border-radius: 20px;
+    font-size: 14px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -981,10 +1000,18 @@
     font-size: 0.3rem;
   }
   
+  /* Smaller player markers for mobile */
   .player-marker {
-    width: 30px;
-    height: 30px;
-    font-size: 1.2rem;
+    width: 35px;
+    height: 35px;
+    border-radius: 17.5px;
+    font-size: 12px;
+    border-width: 1px;
+  }
+  
+  .player-marker.current-player {
+    border-width: 2px;
+    transform: scale(1.05);
   }
   
   .center-title {
@@ -1012,6 +1039,14 @@
   
   .panel-title {
     font-size: 1rem;
+  }
+  
+  /* Extra small player markers for very small screens */
+  .player-marker {
+    width: 30px;
+    height: 30px;
+    border-radius: 15px;
+    font-size: 10px;
   }
   
   .modal-content {
@@ -1058,6 +1093,12 @@
     border: 1px solid black !important;
   }
   
+  .player-marker {
+    border-color: black !important;
+    color: black !important;
+    font-weight: bold;
+  }
+  
   .modal,
   .rules-modal,
   .card-modal {
@@ -1082,6 +1123,11 @@
   animation: bounceIn 0.5s ease-out;
 }
 
+/* Player marker movement animation */
+.player-marker-moving {
+  animation: playerMove 0.8s ease-in-out;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -1102,6 +1148,12 @@
   50% { transform: scale(1.05); }
   70% { transform: scale(0.9); }
   100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes playerMove {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); box-shadow: 0 0 20px rgba(255, 215, 0, 0.8); }
+  100% { transform: scale(1); }
 }
 
 /* Loading States */
@@ -1127,4 +1179,52 @@
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* Enhanced Player Marker States for Better Visibility */
+.player-marker:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.6);
+  z-index: 30;
+}
+
+.player-marker.multiple-players {
+  /* Additional styling when multiple players are on same space */
+  border-width: 3px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+/* Manual move mode styling */
+.location.manual-move-target:hover {
+  background-color: rgba(76, 175, 80, 0.2) !important;
+  border-color: #4CAF50 !important;
+  border-width: 3px !important;
+  box-shadow: 0 0 15px rgba(76, 175, 80, 0.5) !important;
+  cursor: pointer !important;
+}
+
+/* Special location highlighting when players are present */
+.location.has-players {
+  box-shadow: inset 0 0 10px rgba(255, 215, 0, 0.3);
+}
+
+.location.has-current-player {
+  box-shadow: inset 0 0 15px rgba(255, 215, 0, 0.5);
+  border-color: #FFD700 !important;
+}
+
+/* Enhanced visual feedback for interactive elements */
+.clickable {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.clickable:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.clickable:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }

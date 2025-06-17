@@ -41,22 +41,40 @@ export class DataLoader {
   }
 
   static async loadMedievalTheme() {
-    // Placeholder for medieval theme
     return {
       name: 'medieval',
       title: 'Medieval Quest',
-      description: 'Journey through medieval lands and legends',
+      description: 'Journey through medieval lands and encounter legendary figures',
       boardPositions: this.getMedievalBoardPositions(),
       triviaDatabase: this.getMedievalTriviaDatabase(),
-      angelCards: this.getMedievalBlessingCards(),
-      demonCards: this.getMedievalCurseCards(),
+      blessingCards: this.getMedievalBlessingCards(),
+      curseCards: this.getMedievalCurseCards(),
       theme: {
-        primaryColor: '#8B0000',
-        secondaryColor: '#FFD700',
-        backgroundColor: '#2F4F4F',
-        textColor: '#FFFFFF',
-        boardBackground: '#DCDCDC',
-        boardBorder: '#8B0000'
+        primaryColor: '#2E8B57',
+        secondaryColor: '#4682B4',
+        accentColor: '#8B4513',
+        backgroundColor: '#F5F5DC',
+        textColor: '#333333',
+        borderColor: '#8B4513'
+      },
+      specialSpaces: {
+        positive: { symbol: '⚔️', name: "Knight's Blessing", gradient: 'linear-gradient(135deg, #FFD700, #FFA500)' },
+        negative: { symbol: '🌙', name: 'Curse Card', gradient: 'linear-gradient(135deg, #8B0000, #DC143C)' },
+        wolves: { symbol: '🐺', name: 'Wolf Pack Attack', gradient: 'linear-gradient(135deg, #654321, #8B4513)' },
+        bandits: { symbol: '⚔️', name: 'Brigand Attack', gradient: 'linear-gradient(135deg, #2F4F4F, #708090)' }
+      },
+      game: {
+        title: 'VOYAGER',
+        subtitle: 'Journey to Jerusalem',
+        description: 'First to 40 Sacrifice Points wins! Answer biblical trivia, redeem for offerings, but beware of bandits and wolves!',
+        victoryCondition: 40,
+        victoryResource: 'Sacrifice Points',
+        passStartBonus: 5,
+        resources: {
+          primary: 'sacrificePoints',
+          secondary: ['livestock', 'coins'],
+          helpers: 'helpers'
+        }
       }
     };
   }
@@ -113,12 +131,33 @@ export class DataLoader {
   }
 
   static getMedievalBoardPositions() {
-    // Placeholder for medieval theme
     return [
-      { name: "Village Square", type: "start", description: "Starting space - collect 5 gold when passing" },
-      { name: "Castle Walls", type: "location", description: "Defense and protection" },
-      { name: "Monastery", type: "location", description: "Learning and faith" },
-      // ... more medieval locations
+      { name: "Village Square", type: "start", description: "Starting space - collect 5 gold when passing", category: "village" },
+      { name: "Castle Walls", type: "location", description: "Fortified stronghold, center of feudal power", category: "castle" },
+      { name: "Monastery", type: "location", description: "Center of learning and faith", category: "monastery" },
+      { name: "🐺 WOLF PACK ATTACK", type: "special", description: "Roll die, lose provisions and gold", category: "danger" },
+      { name: "Royal Court", type: "location", description: "Seat of royal power and intrigue", category: "castle" },
+      { name: "Cathedral", type: "location", description: "Grand house of worship and pilgrimage", category: "monastery" },
+      { name: "Merchant's Guild", type: "location", description: "Center of trade and commerce", category: "village" },
+      { name: "Forest of Sherwood", type: "location", description: "Legendary woodland realm", category: "forest" },
+      { name: "Canterbury", type: "location", description: "Famous pilgrimage destination", category: "monastery" },
+      { name: "⚔️ KNIGHT'S BLESSING", type: "special", description: "Draw a Blessing card for divine favor", category: "blessing" },
+      { name: "Tower of London", type: "location", description: "Royal fortress and prison", category: "castle" },
+      { name: "Oxford University", type: "location", description: "Center of medieval learning", category: "monastery" },
+      { name: "Market Square", type: "location", description: "Bustling center of trade", category: "village" },
+      { name: "York Minster", type: "location", description: "Great northern cathedral", category: "monastery" },
+      { name: "Camelot", type: "location", description: "Legendary court of King Arthur", category: "castle" },
+      { name: "Robin Hood's Hideout", type: "location", description: "Secret refuge in the greenwood", category: "forest" },
+      { name: "⚔️ BRIGAND ATTACK", type: "special", description: "Roll die, lose gold and provisions", category: "danger" },
+      { name: "Westminster Abbey", type: "location", description: "Royal abbey and coronation site", category: "monastery" },
+      { name: "Glastonbury Abbey", type: "location", description: "Ancient abbey of mystical legend", category: "monastery" },
+      { name: "Warwick Castle", type: "location", description: "Mighty fortress of the realm", category: "castle" },
+      { name: "Stratford-upon-Avon", type: "location", description: "Market town and birthplace of legends", category: "village" },
+      { name: "Windsor Castle", type: "location", description: "Royal residence and seat of power", category: "castle" },
+      { name: "🌙 DARK SORCERY", type: "special", description: "Draw a Curse card for mystical challenges", category: "trial" },
+      { name: "Edinburgh Castle", type: "location", description: "Scottish royal fortress", category: "castle" },
+      { name: "Tintagel Castle", type: "location", description: "Legendary birthplace of Arthur", category: "castle" },
+      { name: "Isle of Avalon", type: "location", description: "Mystical island of healing and legend", category: "forest" }
     ];
   }
 
@@ -725,18 +764,368 @@ export class DataLoader {
         ]
       }
     }
-      // Add more locations as needed...
-    };
+  };
   }
 
   static getMedievalTriviaDatabase() {
-    // Placeholder for medieval trivia
     return {
       "Castle Walls": {
-        significance: "Defense and protection",
-        characters: {
-          "Knight": [
-            { q: "What was the primary duty of a knight?", a: "To serve their lord and protect the realm" }
+        "significance": "Fortified stronghold, center of feudal power",
+        "characters": {
+          "William the Conqueror": [
+            {
+              "q": "In what year did William the Conqueror defeat King Harold at the Battle of Hastings?",
+              "a": "1066"
+            },
+            {
+              "q": "What famous tapestry depicts William's conquest of England?",
+              "a": "The Bayeux Tapestry"
+            },
+            {
+              "q": "What was William's title before he became King of England?",
+              "a": "Duke of Normandy"
+            },
+            {
+              "q": "What system of land tenure did William establish in England?",
+              "a": "The feudal system"
+            },
+            {
+              "q": "What great survey did William commission to record English lands and resources?",
+              "a": "The Domesday Book"
+            }
+          ],
+          "King Arthur": [
+            {
+              "q": "What was the name of King Arthur's legendary sword?",
+              "a": "Excalibur"
+            },
+            {
+              "q": "Who was Arthur's trusted wizard and advisor?",
+              "a": "Merlin"
+            },
+            {
+              "q": "What was the name of Arthur's legendary court?",
+              "a": "Camelot"
+            },
+            {
+              "q": "What shape was the table around which Arthur's knights gathered?",
+              "a": "Round"
+            },
+            {
+              "q": "Who was Arthur's queen?",
+              "a": "Guinevere"
+            }
+          ],
+          "Richard the Lionheart": [
+            {
+              "q": "Which Crusade was Richard the Lionheart famous for leading?",
+              "a": "The Third Crusade"
+            },
+            {
+              "q": "Who was Richard's main opponent during the Third Crusade?",
+              "a": "Saladin"
+            },
+            {
+              "q": "How much time did Richard actually spend in England during his reign?",
+              "a": "About six months"
+            },
+            {
+              "q": "Where was Richard captured and held for ransom on his way back from the Crusades?",
+              "a": "Austria"
+            },
+            {
+              "q": "What was the enormous ransom paid for Richard's release?",
+              "a": "150,000 marks of silver"
+            }
+          ]
+        }
+      },
+      "Monastery": {
+        "significance": "Center of learning and faith",
+        "characters": {
+          "Thomas Becket": [
+            {
+              "q": "Which king had Thomas Becket murdered in Canterbury Cathedral?",
+              "a": "Henry II"
+            },
+            {
+              "q": "What position did Thomas Becket hold that led to his conflict with the king?",
+              "a": "Archbishop of Canterbury"
+            },
+            {
+              "q": "In what year was Thomas Becket murdered?",
+              "a": "1170"
+            },
+            {
+              "q": "What famous quote is attributed to Henry II regarding Becket?",
+              "a": "Will no one rid me of this turbulent priest?"
+            },
+            {
+              "q": "How long after his death was Thomas Becket canonized as a saint?",
+              "a": "Three years"
+            }
+          ],
+          "Geoffrey Chaucer": [
+            {
+              "q": "What is Geoffrey Chaucer's most famous work?",
+              "a": "The Canterbury Tales"
+            },
+            {
+              "q": "To which shrine were Chaucer's pilgrims traveling?",
+              "a": "Thomas Becket's shrine at Canterbury"
+            },
+            {
+              "q": "In what language did Chaucer write most of his works?",
+              "a": "Middle English"
+            },
+            {
+              "q": "What was Chaucer's profession besides writing?",
+              "a": "Civil servant and diplomat"
+            },
+            {
+              "q": "How many tales were planned for The Canterbury Tales?",
+              "a": "120 tales (though only 24 were completed)"
+            }
+          ]
+        }
+      },
+      "Royal Court": {
+        "significance": "Seat of royal power and intrigue",
+        "characters": {
+          "Eleanor of Aquitaine": [
+            {
+              "q": "Eleanor of Aquitaine was queen consort to which two kings?",
+              "a": "Louis VII of France and Henry II of England"
+            },
+            {
+              "q": "Which famous Crusade did Eleanor participate in?",
+              "a": "The Second Crusade"
+            },
+            {
+              "q": "Which of Eleanor's sons became King of England?",
+              "a": "Richard the Lionheart and later John Lackland"
+            },
+            {
+              "q": "What was Eleanor's role in the development of courtly love?",
+              "a": "She patronized troubadours and promoted the ideals of chivalric romance"
+            },
+            {
+              "q": "How long was Eleanor imprisoned by Henry II?",
+              "a": "Sixteen years"
+            }
+          ],
+          "Henry II": [
+            {
+              "q": "What legal reforms did Henry II implement in England?",
+              "a": "Common law and royal courts"
+            },
+            {
+              "q": "What was the conflict between Henry II and Thomas Becket about?",
+              "a": "The jurisdiction of church courts versus royal courts"
+            },
+            {
+              "q": "Which empire did Henry II rule over?",
+              "a": "The Angevin Empire"
+            },
+            {
+              "q": "What happened to Henry II's sons?",
+              "a": "They frequently rebelled against him"
+            },
+            {
+              "q": "What was Henry II's relationship to William the Conqueror?",
+              "a": "He was William's great-grandson"
+            }
+          ]
+        }
+      },
+      "Canterbury": {
+        "significance": "Famous pilgrimage destination",
+        "characters": {
+          "Thomas Becket": [
+            {
+              "q": "Where was Thomas Becket murdered?",
+              "a": "Canterbury Cathedral"
+            },
+            {
+              "q": "What miracle stories were associated with Thomas Becket's shrine?",
+              "a": "Healing of the sick and blind"
+            },
+            {
+              "q": "How did pilgrims show devotion at Becket's shrine?",
+              "a": "They crawled on their knees and left offerings"
+            },
+            {
+              "q": "What happened to Becket's shrine during the Reformation?",
+              "a": "It was destroyed by Henry VIII"
+            },
+            {
+              "q": "What was the Canterbury pilgrimage route called?",
+              "a": "The Pilgrim's Way"
+            }
+          ],
+          "Geoffrey Chaucer": [
+            {
+              "q": "How many pilgrims are in Chaucer's Canterbury Tales?",
+              "a": "29 pilgrims plus the narrator"
+            },
+            {
+              "q": "From where do Chaucer's pilgrims depart?",
+              "a": "The Tabard Inn in Southwark"
+            },
+            {
+              "q": "What prize was offered for the best tale?",
+              "a": "A free meal at the inn"
+            },
+            {
+              "q": "Which tale is considered the most bawdy and humorous?",
+              "a": "The Miller's Tale"
+            },
+            {
+              "q": "What social classes are represented in the Canterbury Tales?",
+              "a": "All levels from nobility to peasants"
+            }
+          ]
+        }
+      },
+      "Camelot": {
+        "significance": "Legendary court of King Arthur",
+        "characters": {
+          "King Arthur": [
+            {
+              "q": "How did Arthur prove his right to be king?",
+              "a": "By pulling the sword from the stone"
+            },
+            {
+              "q": "What was the name of Arthur's father?",
+              "a": "Uther Pendragon"
+            },
+            {
+              "q": "What was the quest that Arthur's knights undertook?",
+              "a": "The quest for the Holy Grail"
+            },
+            {
+              "q": "Who betrayed Arthur and caused his downfall?",
+              "a": "Mordred, his illegitimate son"
+            },
+            {
+              "q": "Where was Arthur taken to heal from his final wounds?",
+              "a": "The Isle of Avalon"
+            }
+          ],
+          "Sir Lancelot": [
+            {
+              "q": "What was Lancelot's greatest achievement as a knight?",
+              "a": "Being the greatest knight of the Round Table"
+            },
+            {
+              "q": "What was Lancelot's tragic flaw?",
+              "a": "His love for Queen Guinevere"
+            },
+            {
+              "q": "What prevented Lancelot from achieving the Holy Grail?",
+              "a": "His adultery with Guinevere"
+            },
+            {
+              "q": "Who was Lancelot's son who achieved the Grail?",
+              "a": "Sir Galahad"
+            },
+            {
+              "q": "How did Lancelot end his days?",
+              "a": "As a hermit monk"
+            }
+          ],
+          "Merlin": [
+            {
+              "q": "What was Merlin's role in Arthur's birth?",
+              "a": "He helped Uther Pendragon disguise himself to conceive Arthur"
+            },
+            {
+              "q": "What happened to Merlin in most versions of the legend?",
+              "a": "He was trapped by the Lady of the Lake or Morgan le Fay"
+            },
+            {
+              "q": "What magical construction was Merlin credited with?",
+              "a": "Stonehenge"
+            },
+            {
+              "q": "What was Merlin's prophecy about Arthur?",
+              "a": "That he would unite Britain and return in its darkest hour"
+            },
+            {
+              "q": "What was Merlin's relationship to Arthur besides being his advisor?",
+              "a": "He was his magical protector and mentor"
+            }
+          ]
+        }
+      },
+      "Robin Hood's Hideout": {
+        "significance": "Secret refuge in the greenwood",
+        "characters": {
+          "Robin Hood": [
+            {
+              "q": "What was Robin Hood's motto regarding wealth?",
+              "a": "Rob from the rich and give to the poor"
+            },
+            {
+              "q": "In which forest did Robin Hood make his home?",
+              "a": "Sherwood Forest"
+            },
+            {
+              "q": "Who was Robin Hood's main enemy?",
+              "a": "The Sheriff of Nottingham"
+            },
+            {
+              "q": "What was the name of Robin Hood's love interest?",
+              "a": "Maid Marian"
+            },
+            {
+              "q": "What weapon was Robin Hood most famous for using?",
+              "a": "The longbow"
+            }
+          ],
+          "Little John": [
+            {
+              "q": "How did Little John get his name?",
+              "a": "Ironically, because he was actually very tall"
+            },
+            {
+              "q": "What was Little John's role in Robin's band?",
+              "a": "His second-in-command and closest friend"
+            },
+            {
+              "q": "How did Robin Hood and Little John first meet?",
+              "a": "They fought with staffs on a narrow bridge"
+            },
+            {
+              "q": "What was Little John's weapon of choice?",
+              "a": "A quarterstaff"
+            },
+            {
+              "q": "What happened to Little John after Robin's death?",
+              "a": "He continued leading the remaining Merry Men"
+            }
+          ],
+          "Friar Tuck": [
+            {
+              "q": "What was unusual about Friar Tuck for a man of the cloth?",
+              "a": "He was a skilled fighter and archer"
+            },
+            {
+              "q": "What role did Friar Tuck serve for the Merry Men?",
+              "a": "Their chaplain and spiritual advisor"
+            },
+            {
+              "q": "How did Friar Tuck join Robin's band?",
+              "a": "After Robin carried him across a river"
+            },
+            {
+              "q": "What weapon did Friar Tuck prefer?",
+              "a": "A sword and buckler"
+            },
+            {
+              "q": "What was Friar Tuck's personality like?",
+              "a": "Jovial, fond of food and drink, but fierce in battle"
+            }
           ]
         }
       }
@@ -794,16 +1183,132 @@ export class DataLoader {
   }
 
   static getMedievalBlessingCards() {
-    // Placeholder for medieval blessing cards
     return [
-      { title: "Holy Blessing", scripture: "Medieval Prayer", effect: "Gain divine favor and protection.", symbol: "✝️" }
+      {
+        title: "Divine Right of Kings",
+        scripture: "Medieval Blessing",
+        effect: "Gain 4 gold immediately and become immune to Brigand attacks for 3 turns. Royal authority protects the faithful.",
+        symbol: "👑"
+      },
+      {
+        title: "Knight's Oath",
+        scripture: "Code of Chivalry",
+        effect: "Gain 3 gold and choose any character to gain 2 points with. Honor and valor open all doors.",
+        symbol: "⚔️"
+      },
+      {
+        title: "Pilgrim's Grace",
+        scripture: "Canterbury Tales",
+        effect: "Move immediately to any monastery location on the board. Divine guidance leads the faithful to wisdom.",
+        symbol: "🛤️"
+      },
+      {
+        title: "Scholar's Wisdom",
+        scripture: "Oxford Manuscript",
+        effect: "For your next 3 turns, gain +1 gold for every correct answer (4 total instead of 3). Knowledge is power.",
+        symbol: "📚"
+      },
+      {
+        title: "Merchant's Fortune",
+        scripture: "Guild Charter",
+        effect: "Gain 2 gold and recover all lost provisions. Prosperity follows the industrious.",
+        symbol: "💰"
+      },
+      {
+        title: "Abbot's Blessing",
+        scripture: "Monastic Rule",
+        effect: "Immunity to all Dark Sorcery effects for the next 4 turns. Sacred protection shields the devout.",
+        symbol: "✝️"
+      },
+      {
+        title: "Royal Pardon",
+        scripture: "Royal Decree",
+        effect: "When you would lose gold from any source, this card prevents all loss. Discard after use.",
+        symbol: "📜"
+      },
+      {
+        title: "Round Table Fellowship",
+        scripture: "Arthurian Legend",
+        effect: "All players gain 2 gold. The greatest virtue brings benefit to all.",
+        symbol: "⭕"
+      },
+      {
+        title: "Merlin's Magic",
+        scripture: "Ancient Prophecy",
+        effect: "Look at any other player's gold total, provisions, and helpers. Gain 2 gold from mystical insight.",
+        symbol: "🔮"
+      },
+      {
+        title: "Holy Grail Vision",
+        scripture: "Quest Legend",
+        effect: "Gain 5 gold. The ultimate quest brings the greatest reward.",
+        symbol: "🏆"
+      }
     ];
   }
 
   static getMedievalCurseCards() {
-    // Placeholder for medieval curse cards
     return [
-      { title: "Dark Magic", scripture: "Medieval Curse", effect: "Suffer from dark enchantments.", symbol: "🌙" }
+      {
+        title: "Black Death",
+        scripture: "Plague Chronicle",
+        effect: "All players lose half their provisions (rounded down). The great pestilence spares none.",
+        symbol: "💀"
+      },
+      {
+        title: "Norman Invasion",
+        scripture: "Saxon Chronicle",
+        effect: "Lose 3 gold and 2 provisions. Foreign conquest brings suffering to the land.",
+        symbol: "⚔️"
+      },
+      {
+        title: "Excommunication",
+        scripture: "Papal Bull",
+        effect: "For your next 3 turns, you cannot use Helper hints or earn Helper points. Spiritual exile cuts deep.",
+        symbol: "⛪"
+      },
+      {
+        title: "Dragon's Wrath",
+        scripture: "Beowulf Legend",
+        effect: "Roll two dice and lose that much gold. Ancient evil brings great destruction.",
+        symbol: "🐉"
+      },
+      {
+        title: "Famine and Want",
+        scripture: "Manor Records",
+        effect: "Pay 4 gold immediately or lose your next turn. Starvation weakens even the strong.",
+        symbol: "🌾"
+      },
+      {
+        title: "Civil War",
+        scripture: "War of the Roses",
+        effect: "Choose: either lose 4 gold or take double damage from your next Wolf Pack encounter.",
+        symbol: "🌹"
+      },
+      {
+        title: "Corrupt Sheriff",
+        scripture: "Robin Hood Ballad",
+        effect: "All players must pay you 1 provision or lose 3 gold. Tyranny exploits the innocent.",
+        symbol: "🏛️"
+      },
+      {
+        title: "Viking Raid",
+        scripture: "Norse Saga",
+        effect: "All other players lose 2 gold. The northern reavers take what they will.",
+        symbol: "🛡️"
+      },
+      {
+        title: "Witch's Curse",
+        scripture: "Folk Tale",
+        effect: "For the next 3 turns, you can only earn half gold from correct answers (rounded down). Dark magic hinders progress.",
+        symbol: "🌙"
+      },
+      {
+        title: "Peasant Revolt",
+        scripture: "Wat Tyler's Rebellion",
+        effect: "Choose a player. They cannot earn gold for 2 turns and you steal 1 of their Helpers. Revolution upends order.",
+        symbol: "⚒️"
+      }
     ];
   }
 
@@ -867,4 +1372,5 @@ export class DataLoader {
     ];
   }
 }
-export default { DataLoader }
+
+export default { DataLoader };

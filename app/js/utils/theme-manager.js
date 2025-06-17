@@ -1,4 +1,4 @@
-// js/utils/theme-manager.js - Updated with better responsive design
+// js/utils/theme-manager.js - Enhanced with attack modal styling and responsive design
 import { Dimensions, StyleSheet } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
@@ -30,11 +30,16 @@ export class ThemeManager {
         kingdom: '#96CEB4',
         prophets: '#DDA0DD',
         exile: '#FFEAA7',
-        // Special space colors
+        // NEW: Special space colors for attacks
         angelSpace: '#FFD700',
         demonSpace: '#8B0000',
         wolvesSpace: '#654321',
-        banditsSpace: '#2F4F4F'
+        banditsSpace: '#2F4F4F',
+        // NEW: Attack modal colors
+        wolvesAttackBg: '#654321',
+        wolvesAttackBorder: '#8B4513',
+        banditsAttackBg: '#2F4F4F',
+        banditsAttackBorder: '#708090'
       },
       fonts: {
         regular: 'System',
@@ -76,6 +81,14 @@ export class ThemeManager {
           shadowOpacity: 0.3,
           shadowRadius: 30,
           elevation: 15,
+        },
+        // NEW: Attack modal shadows
+        attackModal: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 20 },
+          shadowOpacity: 0.5,
+          shadowRadius: 30,
+          elevation: 25,
         }
       }
     },
@@ -103,7 +116,16 @@ export class ThemeManager {
         mountain: '#696969',
         monastery: '#4B0082',
         market: '#DAA520',
-        battlefield: '#800000'
+        battlefield: '#800000',
+        // NEW: Medieval attack colors
+        angelSpace: '#FFD700',
+        demonSpace: '#8B0000',
+        wolvesSpace: '#2F4F2F',
+        banditsSpace: '#8B0000',
+        wolvesAttackBg: '#2F4F2F',
+        wolvesAttackBorder: '#556B2F',
+        banditsAttackBg: '#8B0000',
+        banditsAttackBorder: '#DC143C'
       },
       fonts: {
         regular: 'System',
@@ -145,6 +167,13 @@ export class ThemeManager {
           shadowOpacity: 0.4,
           shadowRadius: 20,
           elevation: 15,
+        },
+        attackModal: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 20 },
+          shadowOpacity: 0.6,
+          shadowRadius: 30,
+          elevation: 25,
         }
       }
     }
@@ -253,25 +282,25 @@ export class ThemeManager {
         fontFamily: theme.fonts.bold,
       },
       
-  successButton: {
-    backgroundColor: theme.colors.success,
-    paddingVertical: theme.spacing.sm * scaleFactor,
-    paddingHorizontal: theme.spacing.md * scaleFactor,
-    borderRadius: theme.borderRadius.md,
-    alignItems: 'center',
-    ...theme.shadows.small,
-    minHeight: 44 * scaleFactor,
-  },
-  
-  warningButton: {
-    backgroundColor: theme.colors.warning,
-    paddingVertical: theme.spacing.sm * scaleFactor,
-    paddingHorizontal: theme.spacing.md * scaleFactor,
-    borderRadius: theme.borderRadius.md,
-    alignItems: 'center',
-    ...theme.shadows.small,
-    minHeight: 44 * scaleFactor,
-  },
+      successButton: {
+        backgroundColor: theme.colors.success,
+        paddingVertical: theme.spacing.sm * scaleFactor,
+        paddingHorizontal: theme.spacing.md * scaleFactor,
+        borderRadius: theme.borderRadius.md,
+        alignItems: 'center',
+        ...theme.shadows.small,
+        minHeight: 44 * scaleFactor,
+      },
+      
+      warningButton: {
+        backgroundColor: theme.colors.warning,
+        paddingVertical: theme.spacing.sm * scaleFactor,
+        paddingHorizontal: theme.spacing.md * scaleFactor,
+        borderRadius: theme.borderRadius.md,
+        alignItems: 'center',
+        ...theme.shadows.small,
+        minHeight: 44 * scaleFactor,
+      },
       
       errorButton: {
         backgroundColor: theme.colors.error,
@@ -418,7 +447,125 @@ export class ThemeManager {
         paddingBottom: theme.spacing.sm * scaleFactor,
         fontFamily: theme.fonts.title,
       },
-      
+
+      // NEW: Attack Modal Styles
+      attackModalOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.8)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+      },
+
+      attackModalContent: {
+        borderRadius: theme.borderRadius.xl,
+        padding: theme.spacing.xl * scaleFactor,
+        alignItems: 'center',
+        minWidth: Math.max(350, 350 * scaleFactor),
+        maxWidth: Math.max(450, 450 * scaleFactor),
+        ...theme.shadows.attackModal,
+      },
+
+      wolvesModalContent: {
+        backgroundColor: theme.colors.wolvesAttackBg,
+        borderColor: theme.colors.wolvesAttackBorder,
+        borderWidth: 4,
+      },
+
+      banditsModalContent: {
+        backgroundColor: theme.colors.banditsAttackBg,
+        borderColor: theme.colors.banditsAttackBorder,
+        borderWidth: 4,
+      },
+
+      attackEmoji: {
+        fontSize: Math.max(48, 64 * scaleFactor),
+        marginBottom: theme.spacing.lg * scaleFactor,
+      },
+
+      attackTitle: {
+        fontSize: Math.max(22, 28 * scaleFactor),
+        fontWeight: 'bold',
+        color: theme.colors.textInverse,
+        marginBottom: theme.spacing.md * scaleFactor,
+        textAlign: 'center',
+        fontFamily: theme.fonts.title,
+      },
+
+      attackDescription: {
+        fontSize: Math.max(14, 16 * scaleFactor),
+        color: theme.colors.textInverse,
+        textAlign: 'center',
+        marginBottom: theme.spacing.lg * scaleFactor,
+        lineHeight: Math.max(20, 24 * scaleFactor),
+        opacity: 0.9,
+        fontFamily: theme.fonts.body,
+      },
+
+      attackButton: {
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        borderColor: theme.colors.textInverse,
+        borderWidth: 2,
+        paddingVertical: theme.spacing.md * scaleFactor,
+        paddingHorizontal: theme.spacing.xl * scaleFactor,
+        borderRadius: theme.borderRadius.md,
+        marginBottom: theme.spacing.lg * scaleFactor,
+        minHeight: 50 * scaleFactor,
+      },
+
+      attackButtonText: {
+        color: theme.colors.textInverse,
+        fontSize: Math.max(16, 18 * scaleFactor),
+        fontWeight: 'bold',
+        textAlign: 'center',
+        fontFamily: theme.fonts.bold,
+      },
+
+      diceRolling: {
+        fontSize: Math.max(36, 48 * scaleFactor),
+        color: theme.colors.textInverse,
+        marginVertical: theme.spacing.lg * scaleFactor,
+      },
+
+      attackResults: {
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        padding: theme.spacing.lg * scaleFactor,
+        borderRadius: theme.borderRadius.md,
+        marginVertical: theme.spacing.lg * scaleFactor,
+        width: '100%',
+      },
+
+      rollResult: {
+        fontSize: Math.max(20, 24 * scaleFactor),
+        fontWeight: 'bold',
+        color: theme.colors.textInverse,
+        textAlign: 'center',
+        marginBottom: theme.spacing.md * scaleFactor,
+        fontFamily: theme.fonts.title,
+      },
+
+      damageText: {
+        fontSize: Math.max(14, 16 * scaleFactor),
+        color: theme.colors.textInverse,
+        lineHeight: Math.max(20, 24 * scaleFactor),
+        fontFamily: theme.fonts.body,
+      },
+
+      continueButton: {
+        backgroundColor: 'rgba(255,255,255,0.3)',
+        borderColor: theme.colors.textInverse,
+        borderWidth: 2,
+        paddingVertical: theme.spacing.sm * scaleFactor,
+        paddingHorizontal: theme.spacing.xl * scaleFactor,
+        borderRadius: theme.borderRadius.md,
+        marginTop: theme.spacing.md * scaleFactor,
+        minHeight: 44 * scaleFactor,
+      },
+
       // Layout utilities
       row: {
         flexDirection: 'row',
@@ -454,7 +601,149 @@ export class ThemeManager {
       paddingMD: { padding: theme.spacing.md * scaleFactor },
       paddingLG: { padding: theme.spacing.lg * scaleFactor },
       paddingXL: { padding: theme.spacing.xl * scaleFactor },
-      });
+
+      // NEW: Special Space Styling Helpers
+      wolvesSpaceStyle: {
+        backgroundColor: theme.colors.wolvesSpace,
+        borderColor: theme.colors.wolvesAttackBorder,
+      },
+
+      banditsSpaceStyle: {
+        backgroundColor: theme.colors.banditsSpace,
+        borderColor: theme.colors.banditsAttackBorder,
+      },
+
+      angelSpaceStyle: {
+        backgroundColor: theme.colors.angelSpace,
+        borderColor: theme.colors.secondary,
+      },
+
+      demonSpaceStyle: {
+        backgroundColor: theme.colors.demonSpace,
+        borderColor: theme.colors.error,
+      },
+    });
+  }
+
+  // NEW: Helper functions for attack styling
+  static getAttackModalStyle(themeName, attackType) {
+    const theme = this.getCurrentTheme(themeName);
+    const styles = this.getStyles(themeName);
+    
+    if (attackType === 'wolves') {
+      return [styles.attackModalContent, styles.wolvesModalContent];
+    } else if (attackType === 'bandits') {
+      return [styles.attackModalContent, styles.banditsModalContent];
+    }
+    
+    return styles.attackModalContent;
+  }
+
+  static getSpecialSpaceColors(themeName, spaceType) {
+    const theme = this.getCurrentTheme(themeName);
+    
+    switch (spaceType) {
+      case 'wolves':
+        return {
+          background: theme.colors.wolvesSpace,
+          border: theme.colors.wolvesAttackBorder,
+          text: theme.colors.textInverse
+        };
+      case 'bandits':
+        return {
+          background: theme.colors.banditsSpace,
+          border: theme.colors.banditsAttackBorder,
+          text: theme.colors.textInverse
+        };
+      case 'angel':
+      case 'positive':
+        return {
+          background: theme.colors.angelSpace,
+          border: theme.colors.secondary,
+          text: theme.colors.textDark
+        };
+      case 'demon':
+      case 'negative':
+        return {
+          background: theme.colors.demonSpace,
+          border: theme.colors.error,
+          text: theme.colors.textInverse
+        };
+      default:
+        return {
+          background: theme.colors.surface,
+          border: theme.colors.primary,
+          text: theme.colors.text
+        };
     }
   }
-  export default {ThemeManager};
+
+  static getLocationPeriodColors(themeName, locationName) {
+    const theme = this.getCurrentTheme(themeName);
+    
+    const locationCategories = {
+      'Your Village': theme.colors.creation,
+      'Haran': theme.colors.patriarchs,
+      'Shechem': theme.colors.patriarchs,
+      'Bethel': theme.colors.patriarchs,
+      'Hebron': theme.colors.patriarchs,
+      'Egypt (Goshen)': theme.colors.patriarchs,
+      'Mount Sinai': theme.colors.exodus,
+      'Jordan River': theme.colors.conquest,
+      'Jericho': theme.colors.conquest,
+      'Gilgal': theme.colors.conquest,
+      'Shiloh': theme.colors.conquest,
+      'Ramah': theme.colors.kingdom,
+      'Jerusalem': theme.colors.kingdom,
+      'En-gedi': theme.colors.kingdom,
+      'Mount Carmel': theme.colors.prophets,
+      'Brook Cherith': theme.colors.prophets,
+      'Damascus': theme.colors.prophets,
+      'Nineveh': theme.colors.prophets,
+      'Babylon': theme.colors.exile,
+      'Shushan': theme.colors.exile,
+      'Land of Uz': theme.colors.exile,
+      'Fiery Furnace': theme.colors.prophets,
+    };
+
+    return locationCategories[locationName] || theme.colors.kingdom;
+  }
+
+  // NEW: Responsive design helpers
+  static getResponsiveSize(baseSize, scaleFactor = null) {
+    if (scaleFactor === null) {
+      const isLargeScreen = width > 1200;
+      const isMediumScreen = width > 768 && width <= 1200;
+      scaleFactor = isLargeScreen ? 1 : isMediumScreen ? 0.85 : 0.7;
+    }
+    
+    return Math.max(baseSize * 0.7, baseSize * scaleFactor);
+  }
+
+  static isSmallScreen() {
+    return width <= 768;
+  }
+
+  static isMediumScreen() {
+    return width > 768 && width <= 1200;
+  }
+
+  static isLargeScreen() {
+    return width > 1200;
+  }
+
+  // NEW: Animation timing helpers
+  static getAnimationDuration(durationType = 'normal') {
+    const durations = {
+      fast: 300,
+      normal: 500,
+      slow: 800,
+      attack: 1000, // For attack dice rolls
+      movement: 800, // For player movement
+    };
+    
+    return durations[durationType] || durations.normal;
+  }
+}
+
+export default { ThemeManager };

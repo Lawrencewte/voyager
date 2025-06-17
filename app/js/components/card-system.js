@@ -1,7 +1,10 @@
-// js/components/card-system.js
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+// js/components/card-system.js - Fixed with board-relative positioning
+import { Dimensions, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-const CardSystem = ({ gameState, onUpdateGameState, onDrawCard }) => {
+const { width, height } = Dimensions.get('window');
+const BOARD_SIZE = Math.min(width * 0.95, height * 0.95);
+
+const CardSystem = ({ gameState, onUpdateGameState, onDrawCard, boardPosition }) => {
   const handleDismissCard = () => {
     onUpdateGameState({ currentCard: null });
   };
@@ -42,42 +45,55 @@ const CardSystem = ({ gameState, onUpdateGameState, onDrawCard }) => {
     );
   };
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.cardSection}>
-        <Text style={styles.sectionTitle}>Card Drawing</Text>
-        <View style={styles.deckContainer}>
-          <TouchableOpacity
-            style={[styles.deckMini, styles.angelDeckMini]}
-            onPress={() => onDrawCard('angel')}
-          >
-            <Text style={styles.deckSymbol}>👼</Text>
-            <Text style={styles.deckLabel}>Angel</Text>
-            <Text style={styles.deckCount}>{gameState.angelDeck?.length || 20}</Text>
-          </TouchableOpacity>
+  // Position the card deck in the center area, above the board center but below the title
+  const getCardDeckPosition = () => {
+    return {
+      left: BOARD_SIZE * 0.42, // Center horizontally on the board
+      top: BOARD_SIZE * 0.63,  // Position in upper area, below the center title
+    };
+  };
 
-          <TouchableOpacity
-            style={[styles.deckMini, styles.demonDeckMini]}
-            onPress={() => onDrawCard('demon')}
-          >
-            <Text style={styles.deckSymbol}>👹</Text>
-            <Text style={styles.deckLabel}>Demon</Text>
-            <Text style={styles.deckCount}>{gameState.demonDeck?.length || 20}</Text>
-          </TouchableOpacity>
+  const position = getCardDeckPosition();
+
+  return (
+    <>
+      {/* Fixed position card deck above Bandit Attack space */}
+      <View style={[styles.container, position]}>
+        <View style={styles.cardSection}>
+          <Text style={styles.sectionTitle}>Card Drawing</Text>
+          <View style={styles.deckContainer}>
+            <TouchableOpacity
+              style={[styles.deckMini, styles.angelDeckMini]}
+              onPress={() => onDrawCard('angel')}
+            >
+              <Text style={styles.deckSymbol}>👼</Text>
+              <Text style={styles.deckLabel}>Angel</Text>
+              <Text style={styles.deckCount}>{gameState.angelDeck?.length || 20}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.deckMini, styles.demonDeckMini]}
+              onPress={() => onDrawCard('demon')}
+            >
+              <Text style={styles.deckSymbol}>👹</Text>
+              <Text style={styles.deckLabel}>Demon</Text>
+              <Text style={styles.deckCount}>{gameState.demonDeck?.length || 20}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
+      {/* Card Modal */}
       {renderCardModal()}
-    </View>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 10,
-    left: 40,
     zIndex: 100,
+    // Position will be calculated dynamically
   },
   cardSection: {
     backgroundColor: 'rgba(255, 255, 255, 0.95)',

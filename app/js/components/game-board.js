@@ -1,228 +1,395 @@
-// js/components/game-board.js - Updated with auto-loading trivia support
-import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+// js/components/game-board.js - Enhanced with attack space support
+import React, { useEffect, useRef } from 'react';
+import { Animated, Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ThemeManager } from '../utils/theme-manager';
 
 const { width, height } = Dimensions.get('window');
-// Increase board size significantly for better visibility
 const BOARD_SIZE = Math.min(width * 0.95, height * 0.95);
+const PLAYER_MARKER_SIZE = 35;
 
-const GameBoard = ({ gameState, config, onLocationSelect, onUpdateGameState }) => {
+const GameBoard = ({ 
+  gameState, 
+  config, 
+  onLocationSelect, 
+  onUpdateGameState, 
+  onPlayerMove, 
+  onSpecialSpaceActivate, // NEW: Callback for special space activation
+  currentTheme = 'biblical'
+}) => {
+  const theme = ThemeManager.getCurrentTheme(currentTheme);
+  const styles = ThemeManager.getStyles(currentTheme);
+  
+  // Create animated values for each player
+  const playerAnimations = useRef({});
+
+  // Initialize or update animated values when players change
+  useEffect(() => {
+    if (!gameState.players) return;
+
+    gameState.players.forEach(player => {
+      if (!playerAnimations.current[player.id]) {
+        const initialPos = calculatePlayerMarkerPosition(player.position, player.id, gameState.players);
+        
+        playerAnimations.current[player.id] = {
+          left: new Animated.Value(initialPos.left),
+          top: new Animated.Value(initialPos.top),
+          currentPosition: player.position,
+        };
+      }
+    });
+
+    // Clean up animations for removed players
+    const currentPlayerIds = new Set(gameState.players.map(p => p.id));
+    Object.keys(playerAnimations.current).forEach(playerId => {
+      if (!currentPlayerIds.has(parseInt(playerId))) {
+        delete playerAnimations.current[playerId];
+      }
+    });
+  }, [gameState.players]);
+
+  // Animate player movements when positions change
+  useEffect(() => {
+    if (!gameState.players) return;
+
+    gameState.players.forEach(player => {
+      const animation = playerAnimations.current[player.id];
+      if (animation && animation.currentPosition !== player.position) {
+        const newPos = calculatePlayerMarkerPosition(player.position, player.id, gameState.players);
+        
+        Animated.parallel([
+          Animated.timing(animation.left, {
+            toValue: newPos.left,
+            duration: 800,
+            useNativeDriver: false,
+          }),
+          Animated.timing(animation.top, {
+            toValue: newPos.top,
+            duration: 800,
+            useNativeDriver: false,
+          }),
+        ]).start();
+
+        animation.currentPosition = player.position;
+      }
+    });
+  }, [gameState.players.map(p => `${p.id}:${p.position}`).join(',')]);
+
+  const calculatePlayerMarkerPosition = (locationIndex, playerId, allPlayers) => {
+    const locationPos = getLocationPosition(locationIndex);
+    
+    let baseLeft, baseTop;
+    
+    if (locationPos.left !== undefined) {
+      if (typeof locationPos.left === 'string') {
+        baseLeft = BOARD_SIZE * (parseFloat(locationPos.left.replace('%', '')) / 100);
+      } else {
+        baseLeft = locationPos.left;
+      }
+    } else if (locationPos.right !== undefined) {
+      if (typeof locationPos.right === 'string') {
+        baseLeft = BOARD_SIZE * (1 - parseFloat(locationPos.right.replace('%', '')) / 100 - parseFloat(locationPos.width.replace('%', '')) / 100);
+      } else {
+        baseLeft = BOARD_SIZE * (1 - locationPos.right - parseFloat(locationPos.width.replace('%', '')) / 100);
+      }
+    }
+    
+    if (locationPos.top !== undefined) {
+      if (typeof locationPos.top === 'string') {
+        baseTop = BOARD_SIZE * (parseFloat(locationPos.top.replace('%', '')) / 100);
+      } else {
+        baseTop = locationPos.top;
+      }
+    } else if (locationPos.bottom !== undefined) {
+      if (typeof locationPos.bottom === 'string') {
+        baseTop = BOARD_SIZE * (1 - parseFloat(locationPos.bottom.replace('%', '')) / 100 - parseFloat(locationPos.height.replace('%', '')) / 100);
+      } else {
+        baseTop = BOARD_SIZE * (1 - locationPos.bottom - parseFloat(locationPos.height.replace('%', '')) / 100);
+      }
+    }
+    
+    const playersAtLocation = allPlayers.filter(p => p.position === locationIndex);
+    const sortedPlayersAtLocation = playersAtLocation.sort((a, b) => a.id - b.id);
+    const playerIndex = sortedPlayersAtLocation.findIndex(p => p.id === playerId);
+    
+    const totalPlayersAtLocation = playersAtLocation.length;
+    let offsetX = 0;
+    let offsetY = 0;
+    
+    if (totalPlayersAtLocation > 1) {
+      const playersPerRow = Math.ceil(Math.sqrt(totalPlayersAtLocation));
+      const row = Math.floor(playerIndex / playersPerRow);
+      const col = playerIndex % playersPerRow;
+      
+      const horizontalSpacing = PLAYER_MARKER_SIZE * 0.6;
+      const verticalSpacing = PLAYER_MARKER_SIZE * 0.6;
+      
+      offsetX = col * horizontalSpacing;
+      offsetY = row * verticalSpacing;
+      
+      const totalWidth = (playersPerRow - 1) * horizontalSpacing;
+      const actualRows = Math.ceil(totalPlayersAtLocation / playersPerRow);
+      const totalHeight = (actualRows - 1) * verticalSpacing;
+      
+      offsetX -= totalWidth / 2;
+      offsetY -= totalHeight / 2;
+    }
+    
+    const locationWidth = BOARD_SIZE * (parseFloat(locationPos.width.replace('%', '')) / 100);
+    const locationHeight = BOARD_SIZE * (parseFloat(locationPos.height.replace('%', '')) / 100);
+    
+    const centerX = baseLeft + (locationWidth / 2) - (PLAYER_MARKER_SIZE / 2);
+    const centerY = baseTop + (locationHeight / 2) - (PLAYER_MARKER_SIZE / 2);
+    
+    return {
+      left: centerX + offsetX,
+      top: centerY + offsetY,
+    };
+  };
+
   const handleLocationClick = (location, index) => {
-    // If it's a trivia location, trigger auto-loading trivia
+    const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+    
+    // PRIORITY 1: Manual movement (if enabled)
+    if (currentPlayer && !gameState.isRolling && onPlayerMove) {
+      onPlayerMove(index);
+      return;
+    }
+    
+    // PRIORITY 2: If it's a trivia location, trigger auto-loading trivia
     if (location.type === 'location' && onLocationSelect) {
       onLocationSelect(location.name);
+      return;
     }
     
-    // Handle special spaces
-    if (location.type === 'special') {
-      handleSpecialSpace(location);
+    // PRIORITY 3: Handle special spaces for testing/demonstration
+    if (location.type === 'special' && onSpecialSpaceActivate && currentPlayer?.position === index) {
+      onSpecialSpaceActivate(location, index);
     }
   };
 
-  const handleSpecialSpace = (location) => {
+  const getLocationStyle = (location, index) => {
     const currentPlayer = gameState.players[gameState.currentPlayerIndex];
-    if (!currentPlayer) return;
-
-    switch(location.name) {
-      case "🐺 WOLVES ATTACK":
-        handleAttack('livestock', '🐺 Wolves');
-        break;
-      case "⚔️ BANDITS ATTACK":
-        handleAttack('coins', '⚔️ Bandits');
-        break;
-      case "👼 ANGEL CARD":
-        // This would be handled by the parent component
-        console.log("Angel card space clicked - draw an angel card!");
-        break;
-      case "👹 DEMON CARD":
-        // This would be handled by the parent component
-        console.log("Demon card space clicked - draw a demon card!");
-        break;
-    }
-  };
-
-  const handleAttack = (resourceType, attackerName) => {
-    const attackRoll = Math.floor(Math.random() * 6) + 1;
-    const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+    const canMove = currentPlayer && !gameState.isRolling && onPlayerMove;
     
-    const resourceLoss = Math.min(currentPlayer[resourceType], attackRoll);
-    const spLoss = Math.min(currentPlayer.sacrificePoints, attackRoll);
+    const isClickable = canMove || location.type === 'location';
+    const isCurrentPlayerHere = currentPlayer && currentPlayer.position === index;
     
-    const updatedPlayers = gameState.players.map((player, index) =>
-      index === gameState.currentPlayerIndex
-        ? {
-            ...player,
-            [resourceType]: Math.max(0, player[resourceType] - attackRoll),
-            sacrificePoints: Math.max(0, player.sacrificePoints - attackRoll)
-          }
-        : player
-    );
-
-    onUpdateGameState({ players: updatedPlayers });
-
-    // Use Alert in React Native or console for web development
-    if (typeof alert !== 'undefined') {
-      alert(`${attackerName} rolled ${attackRoll}! You lost ${resourceLoss} ${resourceType} and ${spLoss} SP.`);
-    } else {
-      console.log(`${attackerName} rolled ${attackRoll}! You lost ${resourceLoss} ${resourceType} and ${spLoss} SP.`);
-    }
+    return [
+      boardStyles.location,
+      getLocationPosition(index),
+      getLocationTypeStyle(location, theme),
+      isClickable && boardStyles.clickableLocation,
+      canMove && boardStyles.moveableLocation,
+      isCurrentPlayerHere && location.type === 'special' && boardStyles.activeSpecialSpace,
+    ];
   };
 
   const renderLocation = (location, index) => {
-    const position = getLocationPosition(index);
-    const playersOnSpace = gameState.players.filter(p => p.position === index);
-    
     return (
       <TouchableOpacity
         key={index}
-        style={[
-          styles.location,
-          position,
-          getLocationTypeStyle(location),
-        ]}
+        style={getLocationStyle(location, index)}
         onPress={() => handleLocationClick(location, index)}
+        activeOpacity={0.7}
       >
         {location.type === 'special' ? (
-          <Text style={styles.specialLocationText}>{location.name}</Text>
+          <Text style={[boardStyles.specialLocationText, getSpecialTextStyle(location, theme)]}>
+            {location.name}
+          </Text>
         ) : (
-          <View style={styles.normalLocation}>
-            <View style={[styles.locationHeader, getHeaderStyle(location)]}>
-              <Text style={styles.locationHeaderText}>
+          <View style={boardStyles.normalLocation}>
+            <View style={[boardStyles.locationHeader, getHeaderStyle(location, theme)]}>
+              <Text style={boardStyles.locationHeaderText}>
                 {location.type === 'start' ? 'START' : getLocationCategory(location.name)}
               </Text>
             </View>
-            <Text style={styles.locationName}>{location.name}</Text>
-            <Text style={styles.locationDescription}>{location.description}</Text>
+            <Text style={boardStyles.locationName}>{location.name}</Text>
+            <Text style={boardStyles.locationDescription}>{location.description}</Text>
           </View>
         )}
-        
-        {/* Render player markers */}
-        {playersOnSpace.map((player, playerIndex) => (
-          <View
-            key={player.id}
-            style={[
-              styles.playerMarker,
-              {
-                backgroundColor: player.color,
-                left: 8 + (playerIndex * 12),
-                top: 8 + (playerIndex * 12),
-              }
-            ]}
-          >
-            <Text style={styles.playerMarkerText}>{player.shape || player.name.charAt(0)}</Text>
-          </View>
-        ))}
       </TouchableOpacity>
     );
   };
 
+  const renderAnimatedPlayerMarkers = () => {
+    if (!gameState.players) return null;
+
+    return gameState.players.map(player => {
+      const animation = playerAnimations.current[player.id];
+      if (!animation) return null;
+
+      const isCurrentPlayer = player.id === gameState.players[gameState.currentPlayerIndex]?.id;
+
+      return (
+        <Animated.View
+          key={player.id}
+          style={[
+            boardStyles.playerMarker,
+            {
+              backgroundColor: player.color,
+              left: animation.left,
+              top: animation.top,
+              width: PLAYER_MARKER_SIZE,
+              height: PLAYER_MARKER_SIZE,
+              borderRadius: PLAYER_MARKER_SIZE / 2,
+            },
+            isCurrentPlayer && boardStyles.currentPlayerMarker,
+          ]}
+        >
+          <Text style={boardStyles.playerMarkerText}>
+            {player.shape || player.name.charAt(0)}
+          </Text>
+        </Animated.View>
+      );
+    });
+  };
+
   const renderCenterArea = () => (
-    <View style={styles.centerArea}>
-      <Text style={styles.centerTitle}>VOYAGER</Text>
-      <Text style={styles.centerSubtitle}>Journey to Jerusalem</Text>
-      <Text style={styles.centerDescription}>
+    <View style={[boardStyles.centerArea, { backgroundColor: theme.colors.secondary, borderColor: theme.colors.boardBorder }]}>
+      <Text style={[boardStyles.centerTitle, { color: theme.colors.primary }]}>VOYAGER</Text>
+      <Text style={[boardStyles.centerSubtitle, { color: theme.colors.primary }]}>Journey to Jerusalem</Text>
+      <Text style={[boardStyles.centerDescription, { color: theme.colors.primary }]}>
         First to 40 Sacrifice Points wins! Answer biblical trivia, redeem for offerings, but beware of bandits and wolves!
       </Text>
+      {gameState.players.length > 0 && onPlayerMove && (
+        <Text style={[boardStyles.moveHint, { color: theme.colors.primary, backgroundColor: 'rgba(255,255,255,0.8)' }]}>
+          Click any location to move {gameState.players[gameState.currentPlayerIndex]?.name}'s piece
+        </Text>
+      )}
+      {gameState.players.length > 0 && gameState.players[gameState.currentPlayerIndex] && (
+        <View style={boardStyles.currentPlayerInfo}>
+          <Text style={[boardStyles.currentPlayerLabel, { color: theme.colors.primary }]}>Current Player:</Text>
+          <View style={[boardStyles.currentPlayerDisplay, { borderColor: theme.colors.primary }]}>
+            <View 
+              style={[
+                boardStyles.currentPlayerColor, 
+                { backgroundColor: gameState.players[gameState.currentPlayerIndex].color }
+              ]} 
+            />
+            <Text style={[boardStyles.currentPlayerName, { color: theme.colors.primary }]}>
+              {gameState.players[gameState.currentPlayerIndex].name}
+            </Text>
+            <Text style={boardStyles.currentPlayerShape}>
+              {gameState.players[gameState.currentPlayerIndex].shape}
+            </Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 
   if (!config || !config.boardPositions) {
     return (
-      <View style={styles.gameBoard}>
-        <View style={styles.centerArea}>
-          <Text style={styles.centerTitle}>Loading...</Text>
+      <View style={[boardStyles.gameBoard, { backgroundColor: theme.colors.boardBackground, borderColor: theme.colors.boardBorder }]}>
+        <View style={boardStyles.centerArea}>
+          <Text style={boardStyles.centerTitle}>Loading...</Text>
         </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.gameBoard}>
+    <View style={[boardStyles.gameBoard, { backgroundColor: theme.colors.boardBackground, borderColor: theme.colors.boardBorder }]}>
       {config.boardPositions.map((location, index) => renderLocation(location, index))}
       {renderCenterArea()}
+      {renderAnimatedPlayerMarkers()}
     </View>
   );
 };
 
+// Helper functions
 const getLocationPosition = (index) => {
   const positions = [
-    // Top row - improved positioning
-    { top: 0, left: 0, width: '14.28%', height: '14%' }, // top-left corner
-    { top: 0, left: '14.28%', width: '14.28%', height: '14%' }, // top-1
-    { top: 0, left: '28.56%', width: '14.28%', height: '14%' }, // top-2
-    { top: 0, left: '42.84%', width: '14.28%', height: '14%' }, // top-3
-    { top: 0, left: '57.12%', width: '14.28%', height: '14%' }, // top-4
-    { top: 0, left: '71.4%', width: '14.28%', height: '14%' }, // top-5
-    { top: 0, right: 0, width: '14.28%', height: '14%' }, // top-right corner
-    
-    // Right side - better proportions
-    { top: '14%', right: 0, width: '14.28%', height: '12%' }, // right-1
-    { top: '26%', right: 0, width: '14.28%', height: '12%' }, // right-2
-    { top: '38%', right: 0, width: '14.28%', height: '12%' }, // right-3
-    { top: '50%', right: 0, width: '14.28%', height: '12%' }, // right-4
-    { top: '62%', right: 0, width: '14.28%', height: '12%' }, // right-5
-    { top: '74%', right: 0, width: '14.28%', height: '12%' }, // right-6
-    
-    // Bottom row - improved positioning
-    { bottom: 0, right: 0, width: '14.28%', height: '14%' }, // bottom-right corner
-    { bottom: 0, right: '14.28%', width: '14.28%', height: '14%' }, // bottom-1
-    { bottom: 0, right: '28.56%', width: '14.28%', height: '14%' }, // bottom-2
-    { bottom: 0, right: '42.84%', width: '14.28%', height: '14%' }, // bottom-3
-    { bottom: 0, right: '57.12%', width: '14.28%', height: '14%' }, // bottom-4
-    { bottom: 0, right: '71.4%', width: '14.28%', height: '14%' }, // bottom-5
-    { bottom: 0, left: 0, width: '14.28%', height: '14%' }, // bottom-left corner
-    
-    // Left side - better proportions
-    { bottom: '14%', left: 0, width: '14.28%', height: '12%' }, // left-1
-    { bottom: '26%', left: 0, width: '14.28%', height: '12%' }, // left-2
-    { bottom: '38%', left: 0, width: '14.28%', height: '12%' }, // left-3
-    { bottom: '50%', left: 0, width: '14.28%', height: '12%' }, // left-4
-    { bottom: '62%', left: 0, width: '14.28%', height: '12%' }, // left-5
-    { bottom: '74%', left: 0, width: '14.28%', height: '12%' }, // left-6
+    // Top row
+    { top: 0, left: 0, width: '14.28%', height: '14%' },
+    { top: 0, left: '14.28%', width: '14.28%', height: '14%' },
+    { top: 0, left: '28.56%', width: '14.28%', height: '14%' },
+    { top: 0, left: '42.84%', width: '14.28%', height: '14%' },
+    { top: 0, left: '57.12%', width: '14.28%', height: '14%' },
+    { top: 0, left: '71.4%', width: '14.28%', height: '14%' },
+    { top: 0, right: 0, width: '14.28%', height: '14%' },
+    // Right side
+    { top: '14%', right: 0, width: '14.28%', height: '12%' },
+    { top: '26%', right: 0, width: '14.28%', height: '12%' },
+    { top: '38%', right: 0, width: '14.28%', height: '12%' },
+    { top: '50%', right: 0, width: '14.28%', height: '12%' },
+    { top: '62%', right: 0, width: '14.28%', height: '12%' },
+    { top: '74%', right: 0, width: '14.28%', height: '12%' },
+    // Bottom row
+    { bottom: 0, right: 0, width: '14.28%', height: '14%' },
+    { bottom: 0, right: '14.28%', width: '14.28%', height: '14%' },
+    { bottom: 0, right: '28.56%', width: '14.28%', height: '14%' },
+    { bottom: 0, right: '42.84%', width: '14.28%', height: '14%' },
+    { bottom: 0, right: '57.12%', width: '14.28%', height: '14%' },
+    { bottom: 0, right: '71.4%', width: '14.28%', height: '14%' },
+    { bottom: 0, left: 0, width: '14.28%', height: '14%' },
+    // Left side
+    { bottom: '14%', left: 0, width: '14.28%', height: '12%' },
+    { bottom: '26%', left: 0, width: '14.28%', height: '12%' },
+    { bottom: '38%', left: 0, width: '14.28%', height: '12%' },
+    { bottom: '50%', left: 0, width: '14.28%', height: '12%' },
+    { bottom: '62%', left: 0, width: '14.28%', height: '12%' },
+    { bottom: '74%', left: 0, width: '14.28%', height: '12%' },
   ];
 
   return positions[index] || { top: 0, left: 0, width: '14.28%', height: '12%' };
 };
 
-const getLocationTypeStyle = (location) => {
-  switch (location.type) {
-    case 'special':
-      if (location.name.includes('WOLVES')) return styles.wolvesSpace;
-      if (location.name.includes('BANDITS')) return styles.banditsSpace;
-      if (location.name.includes('ANGEL')) return styles.angelSpace;
-      if (location.name.includes('DEMON')) return styles.demonSpace;
-      return styles.specialSpace;
-    default:
-      return styles.normalLocationStyle;
+const getLocationTypeStyle = (location, theme) => {
+  if (location.type === 'special') {
+    // ENHANCED: Better special space styling based on subtype
+    if (location.subtype === 'wolves' || location.name.includes('WOLVES')) {
+      return { backgroundColor: theme.colors.wolvesSpace || '#654321' };
+    }
+    if (location.subtype === 'bandits' || location.name.includes('BANDITS')) {
+      return { backgroundColor: theme.colors.banditsSpace || '#2F4F4F' };
+    }
+    if (location.subtype === 'positive' || location.name.includes('ANGEL')) {
+      return { backgroundColor: theme.colors.angelSpace || '#FFD700' };
+    }
+    if (location.subtype === 'negative' || location.name.includes('DEMON')) {
+      return { backgroundColor: theme.colors.demonSpace || '#8B0000' };
+    }
+    return { backgroundColor: '#FF6B6B' };
   }
+  return { backgroundColor: 'white' };
 };
 
-const getHeaderStyle = (location) => {
+const getSpecialTextStyle = (location, theme) => {
+  // White text for dark backgrounds, dark text for light backgrounds
+  if (location.subtype === 'wolves' || location.subtype === 'bandits' || location.subtype === 'negative') {
+    return { color: 'white' };
+  }
+  return { color: theme.colors.textDark };
+};
+
+const getHeaderStyle = (location, theme) => {
   const locationCategories = {
-    'Your Village': styles.creationHeader,
-    'Haran': styles.patriarchsHeader,
-    'Shechem': styles.patriarchsHeader,
-    'Bethel': styles.patriarchsHeader,
-    'Hebron': styles.patriarchsHeader,
-    'Egypt (Goshen)': styles.patriarchsHeader,
-    'Mount Sinai': styles.exodusHeader,
-    'Jordan River': styles.conquestHeader,
-    'Jericho': styles.conquestHeader,
-    'Gilgal': styles.conquestHeader,
-    'Shiloh': styles.conquestHeader,
-    'Ramah': styles.kingdomHeader,
-    'Jerusalem': styles.kingdomHeader,
-    'En-gedi': styles.kingdomHeader,
-    'Mount Carmel': styles.prophetsHeader,
-    'Brook Cherith': styles.prophetsHeader,
-    'Damascus': styles.prophetsHeader,
-    'Nineveh': styles.prophetsHeader,
-    'Babylon': styles.exileHeader,
-    'Shushan': styles.exileHeader,
-    'Land of Uz': styles.exileHeader,
-    'Fiery Furnace': styles.prophetsHeader,
+    'Your Village': { backgroundColor: theme.colors.creation || '#FFD93D' },
+    'Haran': { backgroundColor: theme.colors.patriarchs || '#FF6B6B' },
+    'Shechem': { backgroundColor: theme.colors.patriarchs || '#FF6B6B' },
+    'Bethel': { backgroundColor: theme.colors.patriarchs || '#FF6B6B' },
+    'Hebron': { backgroundColor: theme.colors.patriarchs || '#FF6B6B' },
+    'Egypt (Goshen)': { backgroundColor: theme.colors.patriarchs || '#FF6B6B' },
+    'Mount Sinai': { backgroundColor: theme.colors.exodus || '#4ECDC4' },
+    'Jordan River': { backgroundColor: theme.colors.conquest || '#45B7D1' },
+    'Jericho': { backgroundColor: theme.colors.conquest || '#45B7D1' },
+    'Gilgal': { backgroundColor: theme.colors.conquest || '#45B7D1' },
+    'Shiloh': { backgroundColor: theme.colors.conquest || '#45B7D1' },
+    'Ramah': { backgroundColor: theme.colors.kingdom || '#96CEB4' },
+    'Jerusalem': { backgroundColor: theme.colors.kingdom || '#96CEB4' },
+    'En-gedi': { backgroundColor: theme.colors.kingdom || '#96CEB4' },
+    'Mount Carmel': { backgroundColor: theme.colors.prophets || '#DDA0DD' },
+    'Brook Cherith': { backgroundColor: theme.colors.prophets || '#DDA0DD' },
+    'Damascus': { backgroundColor: theme.colors.prophets || '#DDA0DD' },
+    'Nineveh': { backgroundColor: theme.colors.prophets || '#DDA0DD' },
+    'Babylon': { backgroundColor: theme.colors.exile || '#FFEAA7' },
+    'Shushan': { backgroundColor: theme.colors.exile || '#FFEAA7' },
+    'Land of Uz': { backgroundColor: theme.colors.exile || '#FFEAA7' },
+    'Fiery Furnace': { backgroundColor: theme.colors.prophets || '#DDA0DD' },
   };
 
-  return locationCategories[location.name] || styles.kingdomHeader;
+  return locationCategories[location.name] || { backgroundColor: theme.colors.kingdom || '#96CEB4' };
 };
 
 const getLocationCategory = (locationName) => {
@@ -254,13 +421,11 @@ const getLocationCategory = (locationName) => {
   return categories[locationName] || 'KINGDOM';
 };
 
-const styles = StyleSheet.create({
+const boardStyles = StyleSheet.create({
   gameBoard: {
     width: BOARD_SIZE,
     height: BOARD_SIZE,
-    backgroundColor: '#F5F5DC',
     borderWidth: 8,
-    borderColor: '#8B4513',
     position: 'relative',
     alignSelf: 'center',
     shadowColor: '#000',
@@ -278,13 +443,34 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     padding: 4,
   },
-  normalLocationStyle: {
-    backgroundColor: 'white',
-  },
   normalLocation: {
     flex: 1,
     width: '100%',
     justifyContent: 'flex-start',
+  },
+  clickableLocation: {
+    borderColor: '#4CAF50',
+    borderWidth: 2,
+  },
+  moveableLocation: {
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    borderColor: '#4CAF50',
+    borderWidth: 3,
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 6,
+  },
+  activeSpecialSpace: {
+    backgroundColor: 'rgba(255, 193, 7, 0.2)',
+    borderColor: '#FFC107',
+    borderWidth: 3,
+    shadowColor: '#FFC107',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 8,
   },
   locationHeader: {
     height: 20,
@@ -314,29 +500,14 @@ const styles = StyleSheet.create({
     marginTop: 'auto',
     lineHeight: 9,
   },
-  specialSpace: {
-    backgroundColor: '#FF6B6B',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   specialLocationText: {
-    color: 'white',
     fontSize: 11,
     fontWeight: 'bold',
     textAlign: 'center',
     lineHeight: 13,
-  },
-  angelSpace: {
-    backgroundColor: '#FFD700',
-  },
-  demonSpace: {
-    backgroundColor: '#8B0000',
-  },
-  wolvesSpace: {
-    backgroundColor: '#654321',
-  },
-  banditsSpace: {
-    backgroundColor: '#2F4F4F',
+    color: 'white',
+    flex: 1,
+    textAlignVertical: 'center',
   },
   centerArea: {
     position: 'absolute',
@@ -344,9 +515,7 @@ const styles = StyleSheet.create({
     left: '50%',
     width: '45%',
     height: '45%',
-    backgroundColor: '#FFD700',
     borderWidth: 3,
-    borderColor: '#8B4513',
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
@@ -360,7 +529,6 @@ const styles = StyleSheet.create({
   centerTitle: {
     fontSize: Math.max(24, BOARD_SIZE * 0.04),
     fontWeight: 'bold',
-    color: '#8B4513',
     marginBottom: 8,
     textShadowColor: 'rgba(0,0,0,0.3)',
     textShadowOffset: { width: 2, height: 2 },
@@ -368,22 +536,61 @@ const styles = StyleSheet.create({
   },
   centerSubtitle: {
     fontSize: Math.max(12, BOARD_SIZE * 0.018),
-    color: '#654321',
     marginBottom: 12,
     fontStyle: 'italic',
   },
   centerDescription: {
     fontSize: Math.max(10, BOARD_SIZE * 0.014),
-    color: '#654321',
     textAlign: 'center',
     lineHeight: Math.max(12, BOARD_SIZE * 0.018),
     paddingHorizontal: 15,
+    marginBottom: 8,
+  },
+  moveHint: {
+    fontSize: Math.max(9, BOARD_SIZE * 0.012),
+    textAlign: 'center',
+    marginBottom: 8,
+    fontWeight: 'bold',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  currentPlayerInfo: {
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  currentPlayerLabel: {
+    fontSize: Math.max(8, BOARD_SIZE * 0.011),
+    fontWeight: 'bold',
+    marginBottom: 3,
+  },
+  currentPlayerDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  currentPlayerColor: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 6,
+    borderWidth: 1,
+    borderColor: 'white',
+  },
+  currentPlayerName: {
+    fontSize: Math.max(10, BOARD_SIZE * 0.013),
+    fontWeight: 'bold',
+    marginRight: 4,
+  },
+  currentPlayerShape: {
+    fontSize: Math.max(12, BOARD_SIZE * 0.015),
   },
   playerMarker: {
     position: 'absolute',
-    width: 25,
-    height: 25,
-    borderRadius: 12.5,
     borderWidth: 2,
     borderColor: 'white',
     justifyContent: 'center',
@@ -395,19 +602,23 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 8,
   },
+  currentPlayerMarker: {
+    borderWidth: 3,
+    borderColor: '#FFD700',
+    shadowColor: '#FFD700',
+    shadowOpacity: 0.6,
+    shadowRadius: 6,
+    elevation: 12,
+    transform: [{ scale: 1.1 }],
+  },
   playerMarkerText: {
     color: 'white',
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: 'bold',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
-  // Header styles with better contrast
-  creationHeader: { backgroundColor: '#FFD93D' },
-  patriarchsHeader: { backgroundColor: '#FF6B6B' },
-  exodusHeader: { backgroundColor: '#4ECDC4' },
-  conquestHeader: { backgroundColor: '#45B7D1' },
-  kingdomHeader: { backgroundColor: '#96CEB4' },
-  prophetsHeader: { backgroundColor: '#DDA0DD' },
-  exileHeader: { backgroundColor: '#FFEAA7' },
 });
 
 export default GameBoard;
