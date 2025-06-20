@@ -12,6 +12,9 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+// Add this import at the top with your other imports
+import ActiveCardsDisplay from './ActiveCardsDisplay'; // Adjust the path as necessary  
+
 
 const { width } = Dimensions.get('window');
 
@@ -595,6 +598,18 @@ const PlayerManager = ({
                         )}
                       </ScrollView>
                     </View>
+                    {/* Active Cards Display - with error boundary */}
+{player.activeCards && player.activeCards.length > 0 ? (
+  <ActiveCardsDisplay 
+    player={player} 
+    onUseCard={(card) => {
+      Alert.alert(
+        `${card.symbol} ${card.title}`, 
+        `${card.effect}\n\nUses remaining: ${card.effectData?.usesRemaining || 'Unknown'}`
+      );
+    }} 
+  />
+) : null}
                   </View>
                 );
               })

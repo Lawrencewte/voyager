@@ -1,6 +1,9 @@
-// js/voyager-game.js - Complete fixed version with enhanced Wolves/Bandits attacks and proper JSX
+// js/voyager-game.js - CORRECTED VERSION with all attack functions properly defined
+
 import React, { useEffect, useState } from 'react';
 import { Alert, Dimensions, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import CardChoiceModal from '../components/CardChoiceModal';
+import { CardEffectsProcessor, angelCardsWithEffects, demonCardsWithEffects } from '../utils/card-effects';
 import { DataLoader } from '../utils/data-loader';
 import { StateManager } from '../utils/state-manager';
 import { ThemeManager } from '../utils/theme-manager';
@@ -9,8 +12,11 @@ import GameBoard from './game-board';
 import PlayerManager from './player-manager';
 import TriviaPanel from './trivia-panel';
 
+
 // GET DIMENSIONS
 const { width, height } = Dimensions.get('window');
+
+
 
 // Advanced responsive approach with breakpoints
 const isVeryLargeScreen = width > 1600;
@@ -205,6 +211,15 @@ const baseStyles = StyleSheet.create({
     lineHeight: 24,
     opacity: 0.9,
   },
+  playerInfo: {
+    fontSize: 14,
+    color: 'white',
+    textAlign: 'center',
+    marginBottom: 20,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    padding: 10,
+    borderRadius: 8,
+  },
   attackButton: {
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderColor: 'white',
@@ -262,7 +277,62 @@ const VoyagerGame = () => {
   const [showThemeSelector, setShowThemeSelector] = useState(false);
   const [loading, setLoading] = useState(true);
   const [manualMoveMode, setManualMoveMode] = useState(false); // Manual move mode state
+  const [showChoiceModal, setShowChoiceModal] = useState(false);
+  const [choiceModalCard, setChoiceModalCard] = useState(null);
+
+  const cardArrays = { angelCardsWithEffects, demonCardsWithEffects }; // This "uses" the imports
+
+  const handleCardChoice = (choice) => {
+  const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   
+  if (choice.type === 'teleport') {
+    // Handle teleportation
+    const updatedPlayers = gameState.players.map((player, index) =>
+      index === gameState.currentPlayerIndex
+        ? { ...player, position: choice.location }
+        : player
+    );
+    
+    const location = gameConfig.boardPositions[choice.location];
+    const selectedLocation = location && location.type === 'location' ? location.name : null;
+    
+    updateGameState({
+      players: updatedPlayers,
+      selectedLocation
+    });
+    
+    Alert.alert(
+      '🏃 Divine Transport!',
+      `${currentPlayer.name} has been transported to ${gameConfig.boardPositions[choice.location].name}!`
+    );
+    
+  } else if (choice.type === 'helper') {
+    // Handle helper choice + SP gain
+    const updatedPlayers = gameState.players.map((player, index) => {
+      if (index === gameState.currentPlayerIndex) {
+        const updatedHelpers = { ...player.helpers };
+        updatedHelpers[choice.helper] = (updatedHelpers[choice.helper] || 0) + 1;
+        
+        return {
+          ...player,
+          sacrificePoints: player.sacrificePoints + choice.spGain,
+          helpers: updatedHelpers
+        };
+      }
+      return player;
+    });
+    
+    updateGameState({ players: updatedPlayers });
+    
+    Alert.alert(
+      '👼 Divine Blessing!',
+      `${currentPlayer.name} gained ${choice.spGain} SP and 1 point with ${choice.helper}!`
+    );
+  }
+  
+  setShowChoiceModal(false);
+  setChoiceModalCard(null);
+};
   // NEW: Attack state management
   const [attackState, setAttackState] = useState({
     isActive: false,
@@ -427,8 +497,8 @@ const VoyagerGame = () => {
     // CRITICAL FIX: Handle special spaces AFTER position is confirmed in state
     setTimeout(() => {
       if (location.type === 'special') {
-        // Pass the updated player data and location index to ensure position is preserved
-        handleSpecialSpaceAtPosition(location, targetLocationIndex);
+        // FIXED: Use the correct function name
+        handleSpecialSpace(location, targetLocationIndex, updatedPlayers[gameState.currentPlayerIndex]);
       }
     }, 100); // Brief delay to ensure state update is complete
   };
@@ -507,287 +577,497 @@ const VoyagerGame = () => {
       // CRITICAL FIX: Handle special spaces AFTER position is confirmed in state
       setTimeout(() => {
         if (location.type === 'special') {
-          // Pass the location and position to ensure we're working with correct data
-          handleSpecialSpaceAtPosition(location, newPosition);
+          // FIXED: Use correct function name and pass updated player
+          handleSpecialSpace(location, newPosition, updatedPlayers[gameState.currentPlayerIndex]);
         }
       }, 100); // Brief delay to ensure state update is complete
     }, 1000);
   };
 
-  // ENHANCED: New function to handle special spaces while preserving position
-  const handleSpecialSpaceAtPosition = (location, positionIndex) => {
-    // Get current state to ensure we have the latest data
-    const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+  // FIXED: Consolidated special space handling function
+  const handleSpecialSpace = (location, position, playerAtPosition) => {
+    console.log('Handling special space:', location.name, 'at position:', position);
     
-    // Double-check that player is actually at this position
-    if (currentPlayer.position !== positionIndex) {
-      console.warn(`Position mismatch: player at ${currentPlayer.position}, handling ${positionIndex}`);
-      return;
-    }
-
     switch(location.name) {
       case "🐺 WOLVES ATTACK":
-      case "🐺 Wolves Attack":
-      case "Wolves Attack":
-        initiateWolvesAttack(positionIndex);
+        initiateWolvesAttack(playerAtPosition, position);
         break;
+        
       case "⚔️ BANDITS ATTACK":
-      case "⚔️ Bandits Attack":
-      case "Bandits Attack":
-        initiateBanditsAttack(positionIndex);
+        initiateBanditsAttack(playerAtPosition, position);
         break;
+        
       case "👼 ANGEL CARD":
         drawCard('angel');
         break;
+        
       case "👹 DEMON CARD":
         drawCard('demon');
         break;
+        
+      default:
+        console.log('Unknown special space:', location.name);
     }
   };
 
-  // NEW: Enhanced Wolves attack implementation
-  const initiateWolvesAttack = (expectedPosition) => {
+  // FIXED: Wolves attack implementation
+  // UPDATED ATTACK FUNCTIONS WITH IMMUNITY CHECKS
+
+// First, add this import at the top of your VoyagerGame.js file:
+
+// UPDATED: Wolves attack with immunity check
+const initiateWolvesAttack = (player, position) => {
+  console.log('Initiating wolves attack for player:', player.name, 'at position:', position);
+  
+  // CHECK FOR ATTACK IMMUNITY FIRST
+  if (CardEffectsProcessor.hasActiveCard(player, 'attack_immunity')) {
+    console.log('Player has attack immunity - blocking wolves attack');
+    
+    const { player: updatedPlayer, cardUsed } = CardEffectsProcessor.useActiveCard(player, 'attack_immunity');
+    
+    // Update player state to remove the used immunity card
+    const updatedPlayers = gameState.players.map((p, index) => 
+      index === gameState.currentPlayerIndex ? updatedPlayer : p
+    );
+    
+    updateGameState({ players: updatedPlayers });
+    
+    // Show immunity message
+    Alert.alert(
+      `${cardUsed.symbol} ${cardUsed.title}`,
+      `Divine protection activated! The wolves flee in terror before ${player.name}! The pack disperses into the wilderness.`
+    );
+    
+    return; // Skip normal attack completely
+  }
+  
+  // Continue with normal attack if no immunity
+  setAttackState({
+    isActive: true,
+    type: 'wolves',
+    isRolling: false,
+    attackRoll: null,
+    damage: null,
+    expectedPosition: position
+  });
+};
+
+const performWolvesAttackRoll = () => {
+  setAttackState(prev => ({ ...prev, isRolling: true }));
+
+  setTimeout(() => {
+    const attackRoll = Math.floor(Math.random() * 6) + 1;
     const currentPlayer = gameState.players[gameState.currentPlayerIndex];
     
-    // Verify player is still at the expected position
-    if (currentPlayer.position !== expectedPosition) {
-      console.warn(`Position changed during wolves attack. Expected: ${expectedPosition}, Actual: ${currentPlayer.position}`);
-    }
+    const livestockLoss = Math.min(currentPlayer.livestock, attackRoll);
+    const spLoss = Math.min(currentPlayer.sacrificePoints, attackRoll);
     
-    // Set up attack state
-    setAttackState({
-      isActive: true,
-      type: 'wolves',
-      isRolling: false,
-      attackRoll: null,
-      damage: null,
-      expectedPosition
-    });
-  };
-
-  const performWolvesAttackRoll = () => {
-    // Set rolling state to show dice animation
-    setAttackState(prev => ({ ...prev, isRolling: true }));
-
-    // Simulate dice roll animation
-    setTimeout(() => {
-      const attackRoll = Math.floor(Math.random() * 6) + 1;
-      const currentPlayer = gameState.players[gameState.currentPlayerIndex];
-      
-      const livestockLoss = Math.min(currentPlayer.livestock, attackRoll);
-      const spLoss = Math.min(currentPlayer.sacrificePoints, attackRoll);
-      
-      // CRITICAL FIX: Only update resources, NEVER touch position
-      const updatedPlayers = gameState.players.map((player, index) =>
-        index === gameState.currentPlayerIndex
-          ? {
-              ...player,
-              // DO NOT MODIFY POSITION - only update resources
-              livestock: Math.max(0, player.livestock - attackRoll),
-              sacrificePoints: Math.max(0, player.sacrificePoints - attackRoll)
-              // position is intentionally NOT included here
-            }
-          : player
-      );
-
-      // Update game state without touching position
-      updateGameState({
-        players: updatedPlayers,
-        lastRoll: attackRoll
-      });
-
-      // Update attack state with results
-      setAttackState(prev => ({
-        ...prev,
-        isRolling: false,
-        attackRoll,
-        damage: {
-          livestock: livestockLoss,
-          sp: spLoss,
-          remaining: {
-            livestock: Math.max(0, currentPlayer.livestock - attackRoll),
-            sp: Math.max(0, currentPlayer.sacrificePoints - attackRoll)
+    // CRITICAL: Update only resources, never position
+    const updatedPlayers = gameState.players.map((player, index) =>
+      index === gameState.currentPlayerIndex
+        ? {
+            ...player,
+            livestock: Math.max(0, player.livestock - attackRoll),
+            sacrificePoints: Math.max(0, player.sacrificePoints - attackRoll)
+            // position is intentionally NOT modified
           }
-        }
-      }));
-    }, 1000); // 1 second delay to show dice rolling animation
-  };
-
-  // NEW: Enhanced Bandits attack implementation
-  const initiateBanditsAttack = (expectedPosition) => {
-    const currentPlayer = gameState.players[gameState.currentPlayerIndex];
-    
-    // Verify player is still at the expected position
-    if (currentPlayer.position !== expectedPosition) {
-      console.warn(`Position changed during bandits attack. Expected: ${expectedPosition}, Actual: ${currentPlayer.position}`);
-    }
-    
-    // Set up attack state
-    setAttackState({
-      isActive: true,
-      type: 'bandits',
-      isRolling: false,
-      attackRoll: null,
-      damage: null,
-      expectedPosition
-    });
-  };
-
-  const performBanditsAttackRoll = () => {
-    // Set rolling state to show dice animation
-    setAttackState(prev => ({ ...prev, isRolling: true }));
-
-    // Simulate dice roll animation
-    setTimeout(() => {
-      const attackRoll = Math.floor(Math.random() * 6) + 1;
-      const currentPlayer = gameState.players[gameState.currentPlayerIndex];
-      
-      const coinsLoss = Math.min(currentPlayer.coins, attackRoll);
-      const spLoss = Math.min(currentPlayer.sacrificePoints, attackRoll);
-      
-      // CRITICAL FIX: Only update resources, NEVER touch position
-      const updatedPlayers = gameState.players.map((player, index) =>
-        index === gameState.currentPlayerIndex
-          ? {
-              ...player,
-              // DO NOT MODIFY POSITION - only update resources
-              coins: Math.max(0, player.coins - attackRoll),
-              sacrificePoints: Math.max(0, player.sacrificePoints - attackRoll)
-              // position is intentionally NOT included here
-            }
-          : player
-      );
-
-      // Update game state without touching position
-      updateGameState({
-        players: updatedPlayers,
-        lastRoll: attackRoll
-      });
-
-      // Update attack state with results
-      setAttackState(prev => ({
-        ...prev,
-        isRolling: false,
-        attackRoll,
-        damage: {
-          coins: coinsLoss,
-          sp: spLoss,
-          remaining: {
-            coins: Math.max(0, currentPlayer.coins - attackRoll),
-            sp: Math.max(0, currentPlayer.sacrificePoints - attackRoll)
-          }
-        }
-      }));
-    }, 1000); // 1 second delay to show dice rolling animation
-  };
-
-  // NEW: Dismiss attack modal
-  const dismissAttack = () => {
-    setAttackState({
-      isActive: false,
-      type: null,
-      isRolling: false,
-      attackRoll: null,
-      damage: null,
-      expectedPosition: null
-    });
-  };
-
-  // Legacy function kept for compatibility but redirects to position-aware version
-  const handleSpecialSpace = (location) => {
-    const currentPlayer = gameState.players[gameState.currentPlayerIndex];
-    if (currentPlayer) {
-      handleSpecialSpaceAtPosition(location, currentPlayer.position);
-    }
-  };
-
-  // Legacy attack function redirects to new position-aware versions
-  const handleAttack = (resourceType, attackerName) => {
-    const currentPlayer = gameState.players[gameState.currentPlayerIndex];
-    if (!currentPlayer) return;
-
-    if (resourceType === 'livestock') {
-      initiateWolvesAttack(currentPlayer.position);
-    } else if (resourceType === 'coins') {
-      initiateBanditsAttack(currentPlayer.position);
-    }
-  };
-
-  const drawCard = (cardType) => {
-    const deck = cardType === 'angel' ? gameState.angelDeck : gameState.demonDeck;
-    
-    if (deck.length === 0) {
-      Alert.alert('No Cards', `No ${cardType} cards available!`);
-      return;
-    }
-
-    const cardIndex = Math.floor(Math.random() * deck.length);
-    const card = deck[cardIndex];
-    
-    updateGameState({
-      currentCard: { ...card, type: cardType },
-      [cardType === 'angel' ? 'angelDeck' : 'demonDeck']: deck.filter((_, index) => index !== cardIndex)
-    });
-  };
-
-  const endTurn = () => {
-    if (gameState.players.length === 0) return;
-
-    // Exit manual move mode and dismiss any active attacks when ending turn
-    setManualMoveMode(false);
-    dismissAttack();
-
-    const nextPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
-    const nextTurnNumber = nextPlayerIndex === 0 ? gameState.turnNumber + 1 : gameState.turnNumber;
-    
-    // Determine selected location for the new current player
-    let selectedLocation = null;
-    if (gameState.players[nextPlayerIndex]) {
-      const nextPlayer = gameState.players[nextPlayerIndex];
-      const location = gameConfig.boardPositions[nextPlayer.position];
-      if (location && location.type === 'location') {
-        selectedLocation = location.name;
-      }
-    }
-
-    updateGameState({
-      currentPlayerIndex: nextPlayerIndex,
-      turnNumber: nextTurnNumber,
-      selectedLocation
-    });
-  };
-
-  const addPlayer = (playerData) => {
-    if (gameState.players.length >= 6) {
-      Alert.alert('Maximum Players', 'Maximum 6 players allowed!');
-      return;
-    }
-
-    const newPlayer = {
-      id: gameState.players.length + 1,
-      name: playerData.name || `Player ${gameState.players.length + 1}`,
-      position: 0,
-      sacrificePoints: 0,
-      livestock: 0,
-      coins: 0,
-      helpers: {},
-      color: playerData.color,
-      shape: playerData.shape
-    };
-
-    const updatedPlayers = [...gameState.players, newPlayer];
-    
-    // Set selected location for auto-loading trivia if this is the first player
-    let selectedLocation = gameState.selectedLocation;
-    if (gameState.players.length === 0 && gameConfig.boardPositions[0].type === 'location') {
-      selectedLocation = gameConfig.boardPositions[0].name;
-    }
+        : player
+    );
 
     updateGameState({
       players: updatedPlayers,
-      selectedLocation
+      lastRoll: attackRoll
     });
+
+    setAttackState(prev => ({
+      ...prev,
+      isRolling: false,
+      attackRoll,
+      damage: {
+        livestock: livestockLoss,
+        sp: spLoss,
+        remaining: {
+          livestock: Math.max(0, currentPlayer.livestock - attackRoll),
+          sp: Math.max(0, currentPlayer.sacrificePoints - attackRoll)
+        }
+      }
+    }));
+  }, 1000);
+};
+
+// UPDATED: Bandits attack with immunity check
+const initiateBanditsAttack = (player, position) => {
+  console.log('Initiating bandits attack for player:', player.name, 'at position:', position);
+  
+  // CHECK FOR ATTACK IMMUNITY FIRST
+  if (CardEffectsProcessor.hasActiveCard(player, 'attack_immunity')) {
+    console.log('Player has attack immunity - blocking bandits attack');
+    
+    const { player: updatedPlayer, cardUsed } = CardEffectsProcessor.useActiveCard(player, 'attack_immunity');
+    
+    // Update player state to remove the used immunity card
+    const updatedPlayers = gameState.players.map((p, index) => 
+      index === gameState.currentPlayerIndex ? updatedPlayer : p
+    );
+    
+    updateGameState({ players: updatedPlayers });
+    
+    // Show immunity message
+    Alert.alert(
+      `${cardUsed.symbol} ${cardUsed.title}`,
+      `Divine authority manifested! The bandits are struck with supernatural fear and scatter before ${player.name}! Your goods remain safe.`
+    );
+    
+    return; // Skip normal attack completely
+  }
+  
+  // Continue with normal attack if no immunity
+  setAttackState({
+    isActive: true,
+    type: 'bandits',
+    isRolling: false,
+    attackRoll: null,
+    damage: null,
+    expectedPosition: position
+  });
+};
+
+const performBanditsAttackRoll = () => {
+  setAttackState(prev => ({ ...prev, isRolling: true }));
+
+  setTimeout(() => {
+    const attackRoll = Math.floor(Math.random() * 6) + 1;
+    const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+    
+    const coinsLoss = Math.min(currentPlayer.coins, attackRoll);
+    const spLoss = Math.min(currentPlayer.sacrificePoints, attackRoll);
+    
+    // CRITICAL: Update only resources, never position
+    const updatedPlayers = gameState.players.map((player, index) =>
+      index === gameState.currentPlayerIndex
+        ? {
+            ...player,
+            coins: Math.max(0, player.coins - attackRoll),
+            sacrificePoints: Math.max(0, player.sacrificePoints - attackRoll)
+            // position is intentionally NOT modified
+          }
+        : player
+    );
+
+    updateGameState({
+      players: updatedPlayers,
+      lastRoll: attackRoll
+    });
+
+    setAttackState(prev => ({
+      ...prev,
+      isRolling: false,
+      attackRoll,
+      damage: {
+        coins: coinsLoss,
+        sp: spLoss,
+        remaining: {
+          coins: Math.max(0, currentPlayer.coins - attackRoll),
+          sp: Math.max(0, currentPlayer.sacrificePoints - attackRoll)
+        }
+      }
+    }));
+  }, 1000);
+};
+
+// UNCHANGED: Dismiss attack function
+const dismissAttack = () => {
+  setAttackState({
+    isActive: false,
+    type: null,
+    isRolling: false,
+    attackRoll: null,
+    damage: null,
+    expectedPosition: null
+  });
+};
+
+// OPTIONAL: Add this helper function for testing immunity cards
+const testImmunityCard = () => {
+  // This function can be used to manually give a player an immunity card for testing
+  const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+  
+  if (!currentPlayer) {
+    Alert.alert('No Player', 'Add a player first!');
+    return;
+  }
+  
+  const immunityCard = {
+    id: 'test_immunity',
+    title: "Captain of the Host",
+    symbol: "⚔️",
+    effect: "Your next encounter with wolves or bandits is automatically won without rolling. Divine authority commands victory.",
+    effectData: {
+      type: 'attack_immunity',
+      usesRemaining: 1,
+      description: 'Auto-win next attack'
+    },
+    drawnAt: gameState.turnNumber
   };
+  
+  const updatedPlayers = gameState.players.map((player, index) => {
+    if (index === gameState.currentPlayerIndex) {
+      const activeCards = player.activeCards || [];
+      return {
+        ...player,
+        activeCards: [...activeCards, immunityCard]
+      };
+    }
+    return player;
+  });
+  
+  updateGameState({ players: updatedPlayers });
+  
+  Alert.alert(
+    '⚔️ Test Immunity Card Added!',
+    `${currentPlayer.name} now has attack immunity for testing. Try landing on a wolves or bandits space!`
+  );
+};
+
+// DEBUGGING: Enhanced logging version (use this if you need to debug)
+const debugInitiateWolvesAttack = (player, position) => {
+  console.log('🐺 DEBUG: Initiating wolves attack for player:', player.name, 'at position:', position);
+  console.log('🐺 DEBUG: Player active cards:', player.activeCards);
+  
+  // Check for immunity with detailed logging
+  const hasImmunity = CardEffectsProcessor.hasActiveCard(player, 'attack_immunity');
+  console.log('🐺 DEBUG: Player has immunity?', hasImmunity);
+  
+  if (hasImmunity) {
+    console.log('🐺 DEBUG: Processing immunity card usage...');
+    
+    const { player: updatedPlayer, cardUsed } = CardEffectsProcessor.useActiveCard(player, 'attack_immunity');
+    console.log('🐺 DEBUG: Card used:', cardUsed);
+    console.log('🐺 DEBUG: Player after card use:', updatedPlayer);
+    
+    const updatedPlayers = gameState.players.map((p, index) => 
+      index === gameState.currentPlayerIndex ? updatedPlayer : p
+    );
+    
+    updateGameState({ players: updatedPlayers });
+    
+    Alert.alert(
+      `${cardUsed.symbol} ${cardUsed.title}`,
+      `DEBUG: Divine protection activated! The wolves flee in terror before ${player.name}!`
+    );
+    
+    return;
+  }
+  
+  console.log('🐺 DEBUG: No immunity, proceeding with normal attack...');
+  
+  setAttackState({
+    isActive: true,
+    type: 'wolves',
+    isRolling: false,
+    attackRoll: null,
+    damage: null,
+    expectedPosition: position
+  });
+};
+
+// TESTING CHECKLIST:
+/*
+1. Make sure you have imported CardEffectsProcessor at the top of your file
+2. Test with a player who has no immunity card - should work normally
+3. Use testImmunityCard() to give a player immunity, then test attack - should block attack
+4. Verify that the immunity card is removed from player's activeCards after use
+5. Test that immunity works for both wolves and bandits
+6. Check console logs to see the immunity check process
+
+To test:
+1. Add a player
+2. Call testImmunityCard() to give them immunity
+3. Move them to wolves/bandits space (position 3 or 16)
+4. Watch the immunity card activate and disappear
+*/
+// FIXED drawCard function - preserves player position
+const drawCard = (cardType) => {
+  const deck = cardType === 'angel' ? gameState.angelDeck : gameState.demonDeck;
+  
+  if (deck.length === 0) {
+    Alert.alert('No Cards', `No ${cardType} cards available!`);
+    return;
+  }
+
+  const cardIndex = Math.floor(Math.random() * deck.length);
+  const card = deck[cardIndex];
+  
+  // Update deck first
+  const updatedDeck = deck.filter((_, index) => index !== cardIndex);
+  
+  // CRITICAL FIX: Only update the deck and current card - DO NOT pass entire gameState
+  const deckUpdate = {
+    currentCard: { ...card, type: cardType },
+    [cardType === 'angel' ? 'angelDeck' : 'demonDeck']: updatedDeck
+  };
+  
+  updateGameState(deckUpdate); // Only update what's needed
+  
+  // Process card effect with current state
+  setTimeout(() => {
+    console.log('Processing card effect for:', card.title);
+    
+    if (card.effectType) {
+      // FIXED: Use current gameState, not a reconstructed one
+      CardEffectsProcessor.processCardEffect(
+        card, 
+        gameState, // Use the current state from the component
+        (stateUpdates) => {
+          // CRITICAL: Only update what the card effect changes
+          updateGameState(stateUpdates);
+        },
+        (choiceCard) => {
+          setChoiceModalCard(choiceCard);
+          setShowChoiceModal(true);
+        }
+      );
+    } else {
+      console.warn('Card missing effectType:', card.title);
+      Alert.alert(
+        `${card.symbol} ${card.title}`,
+        `${card.effect}\n\n(Effect not yet implemented)`
+      );
+    }
+  }, 1500);
+};
+
+// Add this to your VoyagerGame.js - Enhanced endTurn function with card updates
+const endTurn = () => {
+  if (gameState.players.length === 0) return;
+
+  // Exit manual move mode and dismiss any active attacks when ending turn
+  setManualMoveMode(false);
+  dismissAttack();
+
+  const nextPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
+  const nextTurnNumber = nextPlayerIndex === 0 ? gameState.turnNumber + 1 : gameState.turnNumber;
+  
+  // CRITICAL FIX: Update active cards for all players at end of turn
+  const updatedPlayers = gameState.players.map((player, index) => {
+    if (!player.activeCards || player.activeCards.length === 0) {
+      return player;
+    }
+
+    // Process each active card
+    const updatedActiveCards = player.activeCards.map(card => {
+      // Only decrease uses for turn-based cards (not permanent or one-time use cards)
+      if (card.effectData.usesRemaining > 1 && card.effectData.usesRemaining < 999) {
+        return {
+          ...card,
+          effectData: {
+            ...card.effectData,
+            usesRemaining: card.effectData.usesRemaining - 1
+          }
+        };
+      }
+      return card;
+    }).filter(card => {
+      // Remove cards that have no uses remaining (except permanent cards)
+      return card.effectData.usesRemaining > 0 || card.effectData.usesRemaining === 999;
+    });
+
+    // Apply turn-based effects for cards like "Messenger of Satan"
+    let updatedPlayer = { ...player, activeCards: updatedActiveCards };
+    
+    // Check for turn-based negative effects
+    updatedActiveCards.forEach(card => {
+      if (card.effectData.type === 'thorn_flesh') {
+        updatedPlayer.sacrificePoints = Math.max(0, updatedPlayer.sacrificePoints - 1);
+      }
+    });
+
+    return updatedPlayer;
+  });
+  
+  // Determine selected location for the new current player
+  let selectedLocation = null;
+  if (updatedPlayers[nextPlayerIndex]) {
+    const nextPlayer = updatedPlayers[nextPlayerIndex];
+    const location = gameConfig.boardPositions[nextPlayer.position];
+    if (location && location.type === 'location') {
+      selectedLocation = location.name;
+    }
+  }
+
+  updateGameState({
+    players: updatedPlayers,
+    currentPlayerIndex: nextPlayerIndex,
+    turnNumber: nextTurnNumber,
+    selectedLocation
+  });
+
+  // Show notification if cards expired
+  const expiredCards = gameState.players.flatMap(player => 
+    (player.activeCards || []).filter(card => 
+      card.effectData.usesRemaining === 1 && card.effectData.usesRemaining < 999
+    )
+  );
+
+  if (expiredCards.length > 0) {
+    setTimeout(() => {
+      Alert.alert(
+        '⏰ Card Effects Expired',
+        `The following card effects have ended: ${expiredCards.map(card => card.title).join(', ')}`
+      );
+    }, 500);
+  }
+};
+
+// ALSO ADD: Function to manually update a specific player's active cards
+const updatePlayerActiveCards = (playerIndex, newActiveCards) => {
+  const updatedPlayers = gameState.players.map((player, index) => {
+    if (index === playerIndex) {
+      return {
+        ...player,
+        activeCards: newActiveCards
+      };
+    }
+    return player;
+  });
+
+  updateGameState({ players: updatedPlayers });
+};
+
+// In VoyagerGame.js, update your addPlayer function:
+
+const addPlayer = (playerData) => {
+  if (gameState.players.length >= 6) {
+    Alert.alert('Maximum Players', 'Maximum 6 players allowed!');
+    return;
+  }
+
+  const newPlayer = {
+    id: gameState.players.length + 1,
+    name: playerData.name || `Player ${gameState.players.length + 1}`,
+    position: 0,
+    sacrificePoints: 0,
+    livestock: 0,
+    coins: 0,
+    helpers: {},
+    activeCards: [], // MAKE SURE THIS IS INCLUDED
+    color: playerData.color,
+    shape: playerData.shape
+  };
+
+  const updatedPlayers = [...gameState.players, newPlayer];
+  
+  // Set selected location for auto-loading trivia if this is the first player
+  let selectedLocation = gameState.selectedLocation;
+  if (gameState.players.length === 0 && gameConfig.boardPositions[0].type === 'location') {
+    selectedLocation = gameConfig.boardPositions[0].name;
+  }
+
+  updateGameState({
+    players: updatedPlayers,
+    selectedLocation
+  });
+};
 
   const removePlayer = () => {
     if (gameState.players.length <= 1) {
@@ -905,7 +1185,7 @@ const VoyagerGame = () => {
     );
   };
 
-  // NEW: Attack Modal Component
+  // FIXED: Attack Modal Component with better player info display
   const AttackModal = () => {
     if (!attackState.isActive) return null;
 
@@ -933,6 +1213,12 @@ const VoyagerGame = () => {
                   ? 'Wild wolves emerge from the wilderness, threatening your livestock and supplies!'
                   : 'Highway bandits block your path, demanding your coins and provisions!'
                 }
+              </Text>
+
+              <Text style={baseStyles.playerInfo}>
+                {currentPlayer.name} has:{'\n'}
+                {isWolves ? `🐄 ${currentPlayer.livestock} livestock` : `🪙 ${currentPlayer.coins} coins`}{'\n'}
+                ⭐ {currentPlayer.sacrificePoints} SP
               </Text>
 
               {!attackState.isRolling && (
@@ -1137,7 +1423,19 @@ const VoyagerGame = () => {
           config={gameConfig}
           currentTheme={currentTheme}
           showOnlyControls={true}
+
         />
+        <CardChoiceModal
+      visible={showChoiceModal}
+      card={choiceModalCard}
+      gameState={gameState}
+      gameConfig={gameConfig}
+      onChoice={handleCardChoice}
+      onCancel={() => {
+        setShowChoiceModal(false);
+        setChoiceModalCard(null);
+      }}
+    />
       </View>
 
       <View style={baseStyles.centerPanel}>
@@ -1148,6 +1446,7 @@ const VoyagerGame = () => {
             onLocationSelect={handleLocationSelect}
             onUpdateGameState={updateGameState}
             onPlayerMove={manualMoveMode ? handlePlayerMove : null}
+            onSpecialSpaceActivate={handleSpecialSpace} // FIXED: Now properly connected
             currentTheme={currentTheme}
           />
           
@@ -1181,7 +1480,7 @@ const VoyagerGame = () => {
         />
       </View>
 
-      {/* Attack Modal - NEW */}
+      {/* Attack Modal - FIXED */}
       <AttackModal />
 
       {/* Theme Selector Modal */}

@@ -1,4 +1,4 @@
-// js/components/trivia-panel.js - Updated without undo feature
+// js/components/trivia-panel.js - Updated without card effects
 import { useEffect, useState } from 'react';
 import { Alert, Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -195,34 +195,8 @@ const TriviaPanel = ({ gameState, config, selectedLocation, onAnswerQuestion }) 
         )}
       </ScrollView>
 
-      {/* Development helper - Quick location selector */}
-      {__DEV__ && config && config.triviaDatabase && (
-        <View style={styles.devLocationSelector}>
-          <Text style={styles.devSelectorTitle}>Dev: Quick Select</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {Object.keys(config.triviaDatabase).slice(0, 6).map(locationName => (
-              <TouchableOpacity
-                key={locationName}
-                style={[
-                  styles.devLocationButton,
-                  selectedLocation === locationName && styles.selectedDevLocationButton
-                ]}
-                onPress={() => {
-                  // This would be handled by parent component in real app
-                  console.log('Dev selector clicked:', locationName);
-                }}
-              >
-                <Text style={[
-                  styles.devLocationButtonText,
-                  selectedLocation === locationName && styles.selectedDevLocationButtonText
-                ]}>
-                  {locationName.split(' ')[0]}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      )}
+      
+      
     </View>
   );
 };

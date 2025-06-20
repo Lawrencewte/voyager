@@ -1,5 +1,4 @@
-// js/utils/state-manager.js - Enhanced with position-preserving attack handling
-import { angelCards, demonCards } from '../models/card';
+// js/utils/state-manager.js - Enhanced with position-preserving attack handling, card effects removed
 
 export class StateManager {
   static getInitialState() {
@@ -12,12 +11,13 @@ export class StateManager {
       currentCard: null,
       answeredQuestions: new Set(),
       claimedHelpers: new Set(),
-      angelDeck: this.shuffleDeck([...angelCards]),
-      demonDeck: this.shuffleDeck([...demonCards]),
+      // Basic card decks - simplified without effects
+      angelDeck: this.shuffleDeck([...this.getBasicAngelCards()]),
+      demonDeck: this.shuffleDeck([...this.getBasicDemonCards()]),
       angelDiscard: [],
       demonDiscard: [],
       selectedLocation: null,
-      // NEW: Attack state management
+      // Attack state management
       isAttackInProgress: false,
       attackState: {
         isActive: false,
@@ -30,9 +30,62 @@ export class StateManager {
     };
   }
 
+  // Basic card sets without complex effects
+  static getBasicAngelCards() {
+    return [
+      { title: "Abraham's Visitors", scripture: "Genesis 18:1-2", effect: "Gain 3 SP immediately and choose any character to gain 1 point with. Divine visitors bring blessing and revelation.", symbol: "👼" },
+      { title: "Angel of the Sacrifice", scripture: "Genesis 22:11-12", effect: "When you would lose SP from any source, this card prevents all loss. Discard after use.", symbol: "🛡️" },
+      { title: "Hagar's Comforter", scripture: "Genesis 21:17-19", effect: "Gain 2 SP and recover 1 livestock. The angel provides water in the wilderness.", symbol: "🌊" },
+      { title: "Lot's Deliverers", scripture: "Genesis 19:15-16", effect: "Move immediately to any location on the board. Angels lead you to safety before judgment falls.", symbol: "🏃" },
+      { title: "Jacob's Ladder", scripture: "Genesis 28:12", effect: "Gain 4 SP. The connection between heaven and earth brings great blessing.", symbol: "🪜" },
+      { title: "Burning Bush Angel", scripture: "Exodus 3:2", effect: "Gain 1 Helper immediately from any character, regardless of your points with them. Divine calling transcends normal requirements.", symbol: "🔥" },
+      { title: "Balaam's Rebuke", scripture: "Numbers 22:31", effect: "Look at the next character you will encounter. Choose whether to proceed or move to a different location.", symbol: "👁️" },
+      { title: "Captain of the Host", scripture: "Joshua 5:14", effect: "Your next encounter with wolves or bandits is automatically won without rolling. Divine authority commands victory.", symbol: "⚔️" },
+      { title: "Gideon's Fire", scripture: "Judges 6:21", effect: "For your next 3 turns, gain +1 SP for every correct answer (4 total instead of 3).", symbol: "🔥" },
+      { title: "Samson's Announcer", scripture: "Judges 13:3", effect: "Choose a character you have 0-1 points with. Gain 2 points with them immediately. Great purposes require divine announcement.", symbol: "👶" },
+      { title: "Elijah's Provider", scripture: "1 Kings 19:5", effect: "Gain 3 SP and recover all lost livestock and coins. God's provision sustains His prophets.", symbol: "🍞" },
+      { title: "Elisha's Army", scripture: "2 Kings 6:17", effect: "Immunity to all Demon card effects for the next 4 turns. The mountain is full of horses and chariots of fire.", symbol: "🐎" },
+      { title: "Assyrian Destroyer", scripture: "2 Kings 19:35", effect: "All other players lose 2 SP. The angel of the LORD protects His people while judging enemies.", symbol: "⚔️" },
+      { title: "Daniel's Guardian", scripture: "Daniel 6:22", effect: "Wolves cannot attack you for the rest of the game. Your faithfulness shuts the lions' mouths.", symbol: "🦁" },
+      { title: "Fourth in the Fire", scripture: "Daniel 3:25", effect: "When you would lose SP or offerings, roll a die. On 4-6, you lose nothing. Keep this card permanently.", symbol: "🔥" },
+      { title: "Gabriel's Revelation", scripture: "Daniel 8:16", effect: "Look at any other player's SP total, livestock, coins, and helpers. Gain 2 SP from divine insight.", symbol: "📜" },
+      { title: "Michael's Protection", scripture: "Daniel 10:13", effect: "Choose another player. They cannot affect you negatively for 3 turns. The prince of Israel defends his people.", symbol: "👑" },
+      { title: "Prison Breaker", scripture: "Acts 12:7", effect: "If you land on a space that would cause you to lose a turn or miss moves, ignore the effect. Discard after use.", symbol: "🔗" },
+      { title: "Philip's Guide", scripture: "Acts 8:26", effect: "On your next turn, move to any location instead of rolling. Divine guidance leads to great opportunities.", symbol: "🌟" },
+      { title: "Birth Announcement", scripture: "Luke 2:13", effect: "All players gain 2 SP. The greatest news brings joy to all people.", symbol: "✨" }
+    ];
+  }
+
+  static getBasicDemonCards() {
+    return [
+      { title: "Ancient Serpent", scripture: "Genesis 3:1", effect: "You surely do not need those offerings. Lose half your livestock and half your coins (rounded down). The first lie still deceives.", symbol: "🐍" },
+      { title: "Spirit of Murder", scripture: "Genesis 4:7", effect: "Choose another player. They lose 3 SP and you steal 1 SP from them. Sin desires to master and destroy.", symbol: "🗡️" },
+      { title: "Evil Spirit of Saul", scripture: "1 Samuel 16:14", effect: "For your next 3 turns, roll a die before answering questions. On 1-3, you cannot use Helper hints or earn Helper points.", symbol: "👑" },
+      { title: "Satan's Test of Job", scripture: "Job 1:19", effect: "Lose 2 livestock, 2 coins, and 1 Helper of your choice. Sometimes the righteous suffer to prove their faith.", symbol: "🌪️" },
+      { title: "Temptation of Appetite", scripture: "Matthew 4:3", effect: "Turn these stones to bread. Pay 4 SP immediately or lose your next turn. Physical needs distract from spiritual purpose.", symbol: "🍞" },
+      { title: "Temptation of Pride", scripture: "Matthew 4:6", effect: "Cast yourself down! Choose: either lose 4 SP or take double damage from your next wolf/bandit encounter.", symbol: "🏔️" },
+      { title: "Temptation of Power", scripture: "Matthew 4:9", effect: "All these kingdoms will I give you. Gain 8 SP, but lose all your Helpers. Worldly success costs spiritual relationships.", symbol: "👑" },
+      { title: "Legion of Torment", scripture: "Mark 5:9", effect: "My name is Legion, for we are many. Roll two dice and lose that many SP. Spiritual oppression multiplies suffering.", symbol: "👥" },
+      { title: "Mute Spirit", scripture: "Matthew 9:32", effect: "You cannot use any Helper hints for your next 3 turns. The spirit of silence prevents testimony and wisdom.", symbol: "🤐" },
+      { title: "Blinding Spirit", scripture: "Matthew 12:22", effect: "For your next 2 questions, you cannot see what location you're on when answering. Spiritual blindness hides truth.", symbol: "👁️" },
+      { title: "False Prophet Spirit", scripture: "Acts 16:16", effect: "Gain insight into coming doom. All other players lose 2 SP. False prophecy brings confusion and fear.", symbol: "🔮" },
+      { title: "Convulsing Spirit", scripture: "Mark 9:18", effect: "Skip your next turn and lose 2 livestock. This kind requires prayer and fasting to overcome.", symbol: "⚡" },
+      { title: "Spirit of Eighteen Years", scripture: "Luke 13:16", effect: "For the next 3 turns, you can only earn half SP from correct answers (rounded down). Satan's bonds limit progress.", symbol: "⛓️" },
+      { title: "Unclean Spirit", scripture: "Mark 1:23", effect: "Let us alone! You cannot gain Helper points with any character for your next 2 turns. Demons resist holy fellowship.", symbol: "🌊" },
+      { title: "Spirit of Greed", scripture: "Acts 19:24", effect: "All players must pay you 1 coin or lose 3 SP. Your choice which they do. False profits exploit God's people.", symbol: "💰" },
+      { title: "Deceiving Spirit", scripture: "Acts 19:13", effect: "Jesus I know, Paul I know, but who are you? Lose all points with one Helper of your choice. False authority brings shame.", symbol: "🎭" },
+      { title: "Messenger of Satan", scripture: "2 Corinthians 12:7", effect: "Keep this card. At the start of each turn, lose 1 SP, but gain +1 to trivia rolls. Weakness can teach dependence on grace.", symbol: "🌵" },
+      { title: "The Great Dragon", scripture: "Revelation 12:9", effect: "All players lose their most valuable resource (count SP value: livestock + coins). The deceiver wages war against all saints.", symbol: "🐉" },
+      { title: "Beast of Persecution", scripture: "Revelation 13:7", effect: "Choose a player. They cannot earn SP for 2 turns and you steal 1 of their Helpers. Power wars against the saints.", symbol: "👹" },
+      { title: "Lake of Fire", scripture: "Revelation 20:10", effect: "All players must sacrifice 5 SP or lose all their livestock. The final judgment demands everything.", symbol: "🔥" }
+    ];
+  }
+
+  // Enhanced initializeWithConfig method
   static initializeWithConfig(config) {
     const initialState = this.getInitialState();
     
+    // Use config cards if available, otherwise use basic cards
     if (config.angelCards) {
       initialState.angelDeck = this.shuffleDeck([...config.angelCards]);
     }
@@ -44,34 +97,54 @@ export class StateManager {
       initialState.selectedLocation = config.boardPositions[0].name;
     }
 
-    return initialState;
+    return {
+      ...initialState,
+      config
+    };
   }
 
+  // Enhanced updateState method to handle Sets and Maps properly
   static updateState(currentState, updates) {
-    const newState = { ...currentState };
-
-    Object.keys(updates).forEach(key => {
+    const processedUpdates = { ...updates };
+    
+    // Handle Set and Map objects properly
+    Object.keys(processedUpdates).forEach(key => {
       if (key === 'answeredQuestions' || key === 'claimedHelpers') {
-        newState[key] = updates[key];
-      } else {
-        newState[key] = updates[key];
+        if (!(processedUpdates[key] instanceof Set)) {
+          if (Array.isArray(processedUpdates[key])) {
+            processedUpdates[key] = new Set(processedUpdates[key]);
+          }
+        }
+      } else if (key === 'questionHistory') {
+        if (!(processedUpdates[key] instanceof Map)) {
+          if (Array.isArray(processedUpdates[key])) {
+            processedUpdates[key] = new Map(processedUpdates[key]);
+          }
+        }
       }
     });
+    
+    const newState = {
+      ...currentState,
+      ...processedUpdates
+    };
     
     return this.validateState(newState);
   }
 
+  // Updated validateState to use new card arrays
   static validateState(state) {
     const validatedState = { ...state };
 
     if (!Array.isArray(validatedState.players)) {
       validatedState.players = [];
     }
+    // Use basic card arrays
     if (!Array.isArray(validatedState.angelDeck)) {
-      validatedState.angelDeck = [...angelCards];
+      validatedState.angelDeck = [...this.getBasicAngelCards()];
     }
     if (!Array.isArray(validatedState.demonDeck)) {
-      validatedState.demonDeck = [...demonCards];
+      validatedState.demonDeck = [...this.getBasicDemonCards()];
     }
 
     if (!(validatedState.answeredQuestions instanceof Set)) {
@@ -119,6 +192,7 @@ export class StateManager {
     return shuffled;
   }
 
+  // Player management
   static addPlayer(state, playerData) {
     if (state.players.length >= 6) {
       throw new Error('Maximum 6 players allowed');
@@ -244,12 +318,13 @@ export class StateManager {
     });
   }
 
+  // Updated drawCard to handle discard pile properly
   static drawCard(state, cardType) {
     const deckKey = cardType === 'angel' ? 'angelDeck' : 'demonDeck';
     const discardKey = cardType === 'angel' ? 'angelDiscard' : 'demonDiscard';
     
     const deck = state[deckKey];
-    const discard = state[discardKey];
+    const discard = state[discardKey] || []; // Handle undefined discard pile
 
     if (deck.length === 0) {
       if (discard.length === 0) {
@@ -365,7 +440,7 @@ export class StateManager {
     });
   }
 
-  // NEW: Attack state management functions
+  // Attack state management functions
   static initiateAttack(state, attackType, expectedPosition) {
     return this.updateState(state, {
       isAttackInProgress: true,
@@ -414,7 +489,7 @@ export class StateManager {
     });
   }
 
-  // ENHANCED: Position-preserving attack handlers
+  // Position-preserving attack handlers
   static handleWolvesAttack(state, damage, expectedPosition = null) {
     const currentPlayer = state.players[state.currentPlayerIndex];
     if (!currentPlayer) {
@@ -433,7 +508,7 @@ export class StateManager {
       if (index === state.currentPlayerIndex) {
         return {
           ...player,
-          // CRITICAL: Do NOT modify position - only update resources
+          // Do NOT modify position - only update resources
           livestock: Math.max(0, player.livestock - damage),
           sacrificePoints: Math.max(0, player.sacrificePoints - damage)
           // position is intentionally omitted to preserve current position
@@ -467,7 +542,7 @@ export class StateManager {
       if (index === state.currentPlayerIndex) {
         return {
           ...player,
-          // CRITICAL: Do NOT modify position - only update resources
+          // Do NOT modify position - only update resources
           coins: Math.max(0, player.coins - damage),
           sacrificePoints: Math.max(0, player.sacrificePoints - damage)
           // position is intentionally omitted to preserve current position
@@ -483,7 +558,7 @@ export class StateManager {
     });
   }
 
-  // Legacy attack function for backward compatibility - now redirects to specific attack types
+  // Legacy attack function for backward compatibility
   static handleAttack(state, attackType, damage, expectedPosition = null) {
     if (attackType === 'wolves' || attackType === 'livestock') {
       return this.handleWolvesAttack(state, damage, expectedPosition);
@@ -545,7 +620,7 @@ export class StateManager {
     return config.boardPositions[position];
   }
 
-  // ENHANCED: Position-safe player resource updates
+  // Position-safe player resource updates
   static updatePlayerResources(state, playerIndex, resourceUpdates) {
     const updatedPlayers = state.players.map((player, index) => {
       if (index === playerIndex) {
@@ -564,7 +639,7 @@ export class StateManager {
     return this.updateState(state, { players: updatedPlayers });
   }
 
-  // ENHANCED: Safe current player resource update
+  // Safe current player resource update
   static updateCurrentPlayerResources(state, resourceUpdates) {
     return this.updatePlayerResources(state, state.currentPlayerIndex, resourceUpdates);
   }
@@ -643,13 +718,16 @@ export class StateManager {
   static cloneState(state) {
     return {
       ...state,
-      players: state.players.map(player => ({ ...player, helpers: { ...player.helpers } })),
+      players: state.players.map(player => ({ 
+        ...player, 
+        helpers: { ...player.helpers }
+      })),
       answeredQuestions: new Set(state.answeredQuestions),
       claimedHelpers: new Set(state.claimedHelpers),
       angelDeck: [...state.angelDeck],
       demonDeck: [...state.demonDeck],
-      angelDiscard: [...state.angelDiscard],
-      demonDiscard: [...state.demonDiscard],
+      angelDiscard: [...(state.angelDiscard || [])], // Handle undefined discard
+      demonDiscard: [...(state.demonDiscard || [])], // Handle undefined discard
       attackState: { ...state.attackState }
     };
   }
