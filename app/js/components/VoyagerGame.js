@@ -2,8 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { Alert, Dimensions, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import CardChoiceModal from '../components/CardChoiceModal';
-import { CardEffectsProcessor, angelCardsWithEffects, demonCardsWithEffects } from '../utils/card-effects';
 import { DataLoader } from '../utils/data-loader';
 import { StateManager } from '../utils/state-manager';
 import { ThemeManager } from '../utils/theme-manager';
@@ -280,7 +278,6 @@ const VoyagerGame = () => {
   const [showChoiceModal, setShowChoiceModal] = useState(false);
   const [choiceModalCard, setChoiceModalCard] = useState(null);
 
-  const cardArrays = { angelCardsWithEffects, demonCardsWithEffects }; // This "uses" the imports
 
   const handleCardChoice = (choice) => {
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
@@ -829,63 +826,6 @@ const testImmunityCard = () => {
   );
 };
 
-// DEBUGGING: Enhanced logging version (use this if you need to debug)
-const debugInitiateWolvesAttack = (player, position) => {
-  console.log('🐺 DEBUG: Initiating wolves attack for player:', player.name, 'at position:', position);
-  console.log('🐺 DEBUG: Player active cards:', player.activeCards);
-  
-  // Check for immunity with detailed logging
-  const hasImmunity = CardEffectsProcessor.hasActiveCard(player, 'attack_immunity');
-  console.log('🐺 DEBUG: Player has immunity?', hasImmunity);
-  
-  if (hasImmunity) {
-    console.log('🐺 DEBUG: Processing immunity card usage...');
-    
-    const { player: updatedPlayer, cardUsed } = CardEffectsProcessor.useActiveCard(player, 'attack_immunity');
-    console.log('🐺 DEBUG: Card used:', cardUsed);
-    console.log('🐺 DEBUG: Player after card use:', updatedPlayer);
-    
-    const updatedPlayers = gameState.players.map((p, index) => 
-      index === gameState.currentPlayerIndex ? updatedPlayer : p
-    );
-    
-    updateGameState({ players: updatedPlayers });
-    
-    Alert.alert(
-      `${cardUsed.symbol} ${cardUsed.title}`,
-      `DEBUG: Divine protection activated! The wolves flee in terror before ${player.name}!`
-    );
-    
-    return;
-  }
-  
-  console.log('🐺 DEBUG: No immunity, proceeding with normal attack...');
-  
-  setAttackState({
-    isActive: true,
-    type: 'wolves',
-    isRolling: false,
-    attackRoll: null,
-    damage: null,
-    expectedPosition: position
-  });
-};
-
-// TESTING CHECKLIST:
-/*
-1. Make sure you have imported CardEffectsProcessor at the top of your file
-2. Test with a player who has no immunity card - should work normally
-3. Use testImmunityCard() to give a player immunity, then test attack - should block attack
-4. Verify that the immunity card is removed from player's activeCards after use
-5. Test that immunity works for both wolves and bandits
-6. Check console logs to see the immunity check process
-
-To test:
-1. Add a player
-2. Call testImmunityCard() to give them immunity
-3. Move them to wolves/bandits space (position 3 or 16)
-4. Watch the immunity card activate and disappear
-*/
 // FIXED drawCard function - preserves player position
 const drawCard = (cardType) => {
   const deck = cardType === 'angel' ? gameState.angelDeck : gameState.demonDeck;
@@ -1096,6 +1036,7 @@ const addPlayer = (playerData) => {
     });
   };
 
+  // FIXED: Answer question with proper helper claiming logic
   const answerQuestion = (characterName, spAmount, questionId) => {
     if (gameState.answeredQuestions.has(questionId)) {
       Alert.alert('Already Answered', 'This question has already been answered!');
@@ -1107,7 +1048,7 @@ const addPlayer = (playerData) => {
       if (index === gameState.currentPlayerIndex) {
         const updatedHelpers = { ...player.helpers };
         
-        // Add helper point only if not already claimed
+        // FIXED: Only add helper point if not already claimed by another player
         if (!gameState.claimedHelpers.has(characterName)) {
           if (!updatedHelpers[characterName]) {
             updatedHelpers[characterName] = 0;
@@ -1131,6 +1072,7 @@ const addPlayer = (playerData) => {
     const newAnsweredQuestions = new Set(gameState.answeredQuestions);
     newAnsweredQuestions.add(questionId);
 
+    // FIXED: Update claimed helpers when a player recruits them
     const newClaimedHelpers = new Set(gameState.claimedHelpers);
     if (!newClaimedHelpers.has(characterName) && 
         updatedPlayers[gameState.currentPlayerIndex].helpers[characterName] === 3) {
@@ -1154,6 +1096,7 @@ const addPlayer = (playerData) => {
     updateGameState({ selectedLocation: locationName });
   };
 
+  // FIXED: New Game function that properly resets everything
   const newGame = () => {
     Alert.alert(
       'New Game',
@@ -1166,6 +1109,8 @@ const addPlayer = (playerData) => {
             // Reset game state to remove all players and reset turn
             setManualMoveMode(false); // Reset manual move mode
             dismissAttack(); // Clear any active attacks
+            
+            // FIXED: Properly reset all game state including claimed helpers
             updateGameState({
               players: [],
               currentPlayerIndex: 0,
@@ -1175,7 +1120,7 @@ const addPlayer = (playerData) => {
               currentCard: null,
               selectedLocation: null,
               answeredQuestions: new Set(),
-              claimedHelpers: new Set()
+              claimedHelpers: new Set() // Reset claimed helpers
             });
             
             Alert.alert('New Game Started!', 'All players removed and turn count reset. Add players to begin!');
@@ -1425,17 +1370,7 @@ const addPlayer = (playerData) => {
           showOnlyControls={true}
 
         />
-        <CardChoiceModal
-      visible={showChoiceModal}
-      card={choiceModalCard}
-      gameState={gameState}
-      gameConfig={gameConfig}
-      onChoice={handleCardChoice}
-      onCancel={() => {
-        setShowChoiceModal(false);
-        setChoiceModalCard(null);
-      }}
-    />
+        
       </View>
 
       <View style={baseStyles.centerPanel}>

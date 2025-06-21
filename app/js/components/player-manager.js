@@ -13,7 +13,6 @@ import {
   View
 } from 'react-native';
 // Add this import at the top with your other imports
-import ActiveCardsDisplay from './ActiveCardsDisplay'; // Adjust the path as necessary  
 
 
 const { width } = Dimensions.get('window');
@@ -84,6 +83,8 @@ const PlayerManager = ({
   const turnNumber = gameState?.turnNumber || 1;
   const lastRoll = gameState?.lastRoll || 0;
   const isRolling = gameState?.isRolling || false;
+  // FIXED: Access claimedHelpers for helper claiming logic
+  const claimedHelpers = gameState?.claimedHelpers || new Set();
 
   const handleAddPlayer = () => {
     if (players.length >= 6) {
@@ -121,6 +122,7 @@ const PlayerManager = ({
     setShowHelperModal(true);
   };
 
+  // FIXED: Helper adding with claimed helpers check
   const addHelperToPlayer = () => {
     if (!selectedHelper && !newHelperName.trim()) {
       Alert.alert('Select Helper', 'Please select a helper from the list or enter a custom name.');
@@ -131,6 +133,12 @@ const PlayerManager = ({
     const player = players[selectedPlayerIndex];
     
     if (!player) return;
+
+    // FIXED: Check if this helper is already claimed by another player
+    if (claimedHelpers.has(helperName)) {
+      Alert.alert('Helper Already Claimed', `${helperName} has already been recruited by another player and cannot earn helper points.`);
+      return;
+    }
 
     // Update player helpers
     const updatedPlayers = players.map((p, index) => {
@@ -146,13 +154,20 @@ const PlayerManager = ({
       return p;
     });
 
+    // FIXED: Update claimed helpers if this recruitment reaches 3 points
+    const newClaimedHelpers = new Set(claimedHelpers);
+    const newPoints = (player.helpers[helperName] || 0) + 1;
+    if (newPoints === 3) {
+      newClaimedHelpers.add(helperName);
+    }
+
     onUpdateGameState({ 
       ...gameState, 
-      players: updatedPlayers 
+      players: updatedPlayers,
+      claimedHelpers: newClaimedHelpers
     });
 
     // Check if helper was just recruited
-    const newPoints = (player.helpers[helperName] || 0) + 1;
     if (newPoints === 3) {
       Alert.alert('Helper Recruited!', `${player.name} has recruited ${helperName} as a Helper!`);
     }
@@ -162,14 +177,27 @@ const PlayerManager = ({
     setShowHelperModal(false);
   };
 
+  // FIXED: Helper point adjustment with claimed helpers logic
   const adjustHelperPoints = (playerIndex, helperName, adjustment) => {
     const player = players[playerIndex];
     if (!player || !player.helpers[helperName]) return;
 
+    // FIXED: Check if this helper is claimed and we're trying to add points to a different player
+    if (claimedHelpers.has(helperName)) {
+      // Find who has this helper recruited
+      const helperOwner = players.find(p => p.helpers[helperName] >= 3);
+      if (helperOwner && helperOwner !== player) {
+        Alert.alert('Helper Already Claimed', `${helperName} has been recruited by ${helperOwner.name} and cannot earn points for other players.`);
+        return;
+      }
+    }
+
+    const currentPoints = player.helpers[helperName];
+    const newPoints = Math.max(0, Math.min(10, currentPoints + adjustment));
+    
     const updatedPlayers = players.map((p, index) => {
       if (index === playerIndex) {
         const newHelpers = { ...p.helpers };
-        const newPoints = Math.max(0, Math.min(10, newHelpers[helperName] + adjustment));
         
         if (newPoints === 0) {
           delete newHelpers[helperName];
@@ -182,12 +210,23 @@ const PlayerManager = ({
       return p;
     });
 
+    // FIXED: Update claimed helpers if crossing the 3-point threshold
+    const newClaimedHelpers = new Set(claimedHelpers);
+    if (currentPoints < 3 && newPoints >= 3) {
+      newClaimedHelpers.add(helperName);
+      Alert.alert('Helper Recruited!', `${player.name} has recruited ${helperName} as a Helper!`);
+    } else if (currentPoints >= 3 && newPoints < 3) {
+      newClaimedHelpers.delete(helperName);
+    }
+
     onUpdateGameState({ 
       ...gameState, 
-      players: updatedPlayers 
+      players: updatedPlayers,
+      claimedHelpers: newClaimedHelpers
     });
   };
 
+  // FIXED: Remove helper with claimed helpers update
   const removeHelper = (playerIndex, helperName) => {
     Alert.alert(
       'Remove Helper',
@@ -198,6 +237,9 @@ const PlayerManager = ({
           text: 'Remove', 
           style: 'destructive',
           onPress: () => {
+            const player = players[playerIndex];
+            const wasRecruited = player.helpers[helperName] >= 3;
+            
             const updatedPlayers = players.map((p, index) => {
               if (index === playerIndex) {
                 const newHelpers = { ...p.helpers };
@@ -207,9 +249,16 @@ const PlayerManager = ({
               return p;
             });
 
+            // FIXED: Remove from claimed helpers if they were recruited
+            const newClaimedHelpers = new Set(claimedHelpers);
+            if (wasRecruited) {
+              newClaimedHelpers.delete(helperName);
+            }
+
             onUpdateGameState({ 
               ...gameState, 
-              players: updatedPlayers 
+              players: updatedPlayers,
+              claimedHelpers: newClaimedHelpers
             });
           }
         }
@@ -217,11 +266,18 @@ const PlayerManager = ({
     );
   };
 
-  // Position-safe player stat updates
+  // FIXED: Position-safe player stat updates with proper number validation
   const updatePlayerStat = (playerIndex, stat, value) => {
     if (!players[playerIndex]) return;
     
-    const numValue = Math.max(0, parseInt(value) || 0);
+    // FIXED: Handle empty string or invalid input properly
+    let numValue;
+    if (value === '' || value === null || value === undefined) {
+      numValue = 0;
+    } else {
+      const parsed = parseInt(value);
+      numValue = isNaN(parsed) ? 0 : Math.max(0, parsed);
+    }
     
     const updatedPlayers = players.map((player, index) => {
       if (index === playerIndex) {
@@ -264,6 +320,7 @@ const PlayerManager = ({
     onEndTurn();
   };
 
+  // FIXED: New Game function that calls parent onNewGame
   const handleNewGame = () => {
     Alert.alert(
       'New Game',
@@ -274,17 +331,8 @@ const PlayerManager = ({
           text: 'New Game', 
           onPress: () => {
             try {
-              onUpdateGameState({
-                players: [],
-                currentPlayerIndex: 0,
-                turnNumber: 1,
-                lastRoll: 0,
-                isRolling: false,
-                currentCard: null,
-                selectedLocation: null,
-                answeredQuestions: new Set(),
-                claimedHelpers: new Set()
-              });
+              // FIXED: Call the parent component's new game function
+              onNewGame();
               
               setTimeout(() => {
                 Alert.alert('New Game Started!', 'All players removed and turn count reset. Add players to begin!');
@@ -378,12 +426,13 @@ const PlayerManager = ({
               <Text style={styles.controlButtonText}>Rules</Text>
             </TouchableOpacity>
             
+            {/* FIXED: Disabled Theme Button */}
             {onShowThemeSelector && (
               <TouchableOpacity 
-                style={[styles.controlButton, styles.themeButton]} 
-                onPress={onShowThemeSelector}
+                style={[styles.controlButton, styles.themeButton, styles.disabledButton]} 
+                disabled={true}
               >
-                <Text style={styles.controlButtonText}>
+                <Text style={[styles.controlButtonText, styles.disabledButtonText]}>
                   {currentTheme === 'biblical' ? '📖' : '🏰'} Theme
                 </Text>
               </TouchableOpacity>
@@ -515,6 +564,7 @@ const PlayerManager = ({
                       </Text>
                     </View>
 
+                    {/* FIXED: Editable stats with proper number input handling */}
                     <View style={styles.statRow}>
                       <Text style={styles.statLabel}>SP:</Text>
                       <TextInput
@@ -522,6 +572,7 @@ const PlayerManager = ({
                         value={(player.sacrificePoints || 0).toString()}
                         onChangeText={(value) => updatePlayerStat(index, 'sacrificePoints', value)}
                         keyboardType="numeric"
+                        selectTextOnFocus={true}
                       />
                     </View>
 
@@ -532,6 +583,7 @@ const PlayerManager = ({
                         value={(player.livestock || 0).toString()}
                         onChangeText={(value) => updatePlayerStat(index, 'livestock', value)}
                         keyboardType="numeric"
+                        selectTextOnFocus={true}
                       />
                     </View>
 
@@ -542,6 +594,7 @@ const PlayerManager = ({
                         value={(player.coins || 0).toString()}
                         onChangeText={(value) => updatePlayerStat(index, 'coins', value)}
                         keyboardType="numeric"
+                        selectTextOnFocus={true}
                       />
                     </View>
 
@@ -562,37 +615,49 @@ const PlayerManager = ({
                         showsVerticalScrollIndicator={false}
                       >
                         {player.helpers && Object.keys(player.helpers).length > 0 ? (
-                          Object.keys(player.helpers).map(helperName => (
-                            <View key={helperName} style={styles.helperItem}>
-                              <Text style={styles.helperName} numberOfLines={1}>{helperName}</Text>
-                              <View style={styles.helperControls}>
-                                <TouchableOpacity 
-                                  style={styles.helperButton}
-                                  onPress={() => adjustHelperPoints(index, helperName, -1)}
-                                >
-                                  <Text style={styles.helperButtonText}>-</Text>
-                                </TouchableOpacity>
-                                
-                                <Text style={styles.helperPoints}>
-                                  {player.helpers[helperName] || 0}/3 {(player.helpers[helperName] || 0) >= 3 ? '✅' : ''}
+                          Object.keys(player.helpers).map(helperName => {
+                            const points = player.helpers[helperName];
+                            const isRecruited = points >= 3;
+                            const isClaimed = claimedHelpers.has(helperName);
+                            
+                            return (
+                              <View key={helperName} style={styles.helperItem}>
+                                <Text style={[
+                                  styles.helperName, 
+                                  isRecruited && styles.recruitedHelper,
+                                  isClaimed && !isRecruited && styles.claimedHelper
+                                ]} numberOfLines={1}>
+                                  {helperName} {isRecruited ? '✅' : ''} {isClaimed && !isRecruited ? '🔒' : ''}
                                 </Text>
-                                
-                                <TouchableOpacity 
-                                  style={styles.helperButton}
-                                  onPress={() => adjustHelperPoints(index, helperName, 1)}
-                                >
-                                  <Text style={styles.helperButtonText}>+</Text>
-                                </TouchableOpacity>
-                                
-                                <TouchableOpacity 
-                                  style={styles.removeHelperButton}
-                                  onPress={() => removeHelper(index, helperName)}
-                                >
-                                  <Text style={styles.removeHelperButtonText}>×</Text>
-                                </TouchableOpacity>
+                                <View style={styles.helperControls}>
+                                  <TouchableOpacity 
+                                    style={styles.helperButton}
+                                    onPress={() => adjustHelperPoints(index, helperName, -1)}
+                                  >
+                                    <Text style={styles.helperButtonText}>-</Text>
+                                  </TouchableOpacity>
+                                  
+                                  <Text style={styles.helperPoints}>
+                                    {points || 0}/3
+                                  </Text>
+                                  
+                                  <TouchableOpacity 
+                                    style={styles.helperButton}
+                                    onPress={() => adjustHelperPoints(index, helperName, 1)}
+                                  >
+                                    <Text style={styles.helperButtonText}>+</Text>
+                                  </TouchableOpacity>
+                                  
+                                  <TouchableOpacity 
+                                    style={styles.removeHelperButton}
+                                    onPress={() => removeHelper(index, helperName)}
+                                  >
+                                    <Text style={styles.removeHelperButtonText}>×</Text>
+                                  </TouchableOpacity>
+                                </View>
                               </View>
-                            </View>
-                          ))
+                            );
+                          })
                         ) : (
                           <Text style={styles.noHelpersText}>No helpers yet</Text>
                         )}
@@ -635,23 +700,29 @@ const PlayerManager = ({
               <Text style={styles.label}>Select from Biblical Characters:</Text>
               <ScrollView style={styles.helperPickerContainer} showsVerticalScrollIndicator={false}>
                 <View style={styles.helperPicker}>
-                  {availableHelpers.map(helper => (
-                    <TouchableOpacity
-                      key={helper}
-                      style={[
-                        styles.helperPickerOption,
-                        selectedHelper === helper && styles.selectedHelperPickerOption
-                      ]}
-                      onPress={() => setSelectedHelper(helper)}
-                    >
-                      <Text style={[
-                        styles.helperPickerText,
-                        selectedHelper === helper && styles.selectedHelperPickerText
-                      ]}>
-                        {helper}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                  {availableHelpers.map(helper => {
+                    const isClaimed = claimedHelpers.has(helper);
+                    return (
+                      <TouchableOpacity
+                        key={helper}
+                        style={[
+                          styles.helperPickerOption,
+                          selectedHelper === helper && styles.selectedHelperPickerOption,
+                          isClaimed && styles.claimedHelperOption
+                        ]}
+                        onPress={() => setSelectedHelper(helper)}
+                        disabled={isClaimed}
+                      >
+                        <Text style={[
+                          styles.helperPickerText,
+                          selectedHelper === helper && styles.selectedHelperPickerText,
+                          isClaimed && styles.claimedHelperText
+                        ]}>
+                          {helper} {isClaimed ? '🔒' : ''}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               </ScrollView>
             </View>
@@ -896,11 +967,21 @@ const styles = StyleSheet.create({
   manualMoveButtonActive: {
     backgroundColor: '#F57C00',
   },
+  // FIXED: Added disabled button styles
+  disabledButton: {
+    backgroundColor: '#cccccc',
+    elevation: 0,
+    shadowOpacity: 0,
+  },
   controlButtonText: {
     color: 'white',
     fontSize: Math.max(11, 12 * scaleFactor),
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+  // FIXED: Added disabled button text style
+  disabledButtonText: {
+    color: '#666666',
   },
   turnInfo: {
     backgroundColor: '#FFD700',
@@ -978,9 +1059,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: Math.max(12, 14 * scaleFactor),
     fontWeight: 'bold',
-  },
-  disabledButton: {
-    backgroundColor: '#cccccc',
   },
   lastRoll: {
     fontSize: Math.max(10, 12 * scaleFactor),
@@ -1181,6 +1259,15 @@ const styles = StyleSheet.create({
     color: '#333',
     marginRight: 8,
   },
+  // FIXED: Added helper styling for recruited and claimed helpers
+  recruitedHelper: {
+    fontWeight: 'bold',
+    color: '#4CAF50',
+  },
+  claimedHelper: {
+    color: '#FF9800',
+    fontStyle: 'italic',
+  },
   helperControls: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1366,6 +1453,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#e8f5e8',
     borderWidth: 2,
   },
+  // FIXED: Added claimed helper option styles
+  claimedHelperOption: {
+    backgroundColor: '#f0f0f0',
+    borderColor: '#ccc',
+  },
   helperPickerText: {
     fontSize: Math.max(12, 14 * scaleFactor),
     color: '#333',
@@ -1373,6 +1465,11 @@ const styles = StyleSheet.create({
   selectedHelperPickerText: {
     color: '#2d5a2d',
     fontWeight: 'bold',
+  },
+  // FIXED: Added claimed helper text style
+  claimedHelperText: {
+    color: '#999',
+    fontStyle: 'italic',
   },
   modalButtons: {
     flexDirection: 'row',
