@@ -265,7 +265,7 @@
     "sections": [
       {
         "title": "🎯 Objective",
-        "content": "You're an Israelite journeying to Jerusalem to make your annual sacrifice. After disaster strikes your prepared offerings, you must earn new sacrificial offerings along the way. First player to reach 40 Sacrifice Points wins!"
+        "content": "You're an Israelite journeying to Jerusalem to make your annual sacrifice. After disaster strikes your prepared offerings, you must earn new sacrificial offerings along the way. First player to reach 40 Sacrifice Points wins! Refresh the page to start a new game."
       },
       {
         "title": "🎲 Basic Gameplay",
@@ -273,7 +273,7 @@
       },
       {
         "title": "📚 Trivia Questions",
-        "content": "Correct Answer: 3 SP | With Helper Hint: 2 SP (if you have that character as a helper) | Don't Know: 1 SP | Each question can only be answered once per game. Answered questions become greyed out."
+        "content": "Correct Answer: 3 SP | With Helper Hint: 2 SP  | Don't Know: 1 SP | Each question can only be answered once per game. Answered questions become greyed out."
       },
       {
         "title": "👥 Helpers",

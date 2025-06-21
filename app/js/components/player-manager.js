@@ -410,9 +410,7 @@ const PlayerManager = ({
           <Text style={styles.panelTitle}>🎮 Game Controls</Text>
           
           <View style={styles.controlButtons}>
-            <TouchableOpacity style={styles.controlButton} onPress={handleNewGame}>
-              <Text style={styles.controlButtonText}>New Game</Text>
-            </TouchableOpacity>
+            
 
             <TouchableOpacity style={styles.controlButton} onPress={handleAddPlayer}>
               <Text style={styles.controlButtonText}>Add Player</Text>
@@ -846,7 +844,7 @@ const PlayerManager = ({
               <View style={styles.rulesSection}>
                 <Text style={styles.rulesSectionTitle}>🎯 Objective</Text>
                 <Text style={styles.rulesText}>
-                  You're an Israelite journeying to Jerusalem to make your annual sacrifice. After disaster strikes your prepared offerings, you must earn new sacrificial offerings along the way. <Text style={styles.bold}>First player to reach 40 Sacrifice Points wins!</Text>
+                  You're an Israelite journeying to Jerusalem to make your annual sacrifice. After disaster strikes your prepared offerings, you must earn new sacrificial offerings along the way. Refresh the page to start a new game. <Text style={styles.bold}>First player to reach 40 Sacrifice Points wins!</Text>
                 </Text>
               </View>
 
@@ -865,7 +863,7 @@ const PlayerManager = ({
                 <Text style={styles.rulesSectionTitle}>📚 Trivia Questions</Text>
                 <Text style={styles.rulesText}>
                   • <Text style={styles.bold}>Correct Answer:</Text> 3 SP{'\n'}
-                  • <Text style={styles.bold}>With Helper Hint:</Text> 2 SP (if you have that character as a helper){'\n'}
+                  • <Text style={styles.bold}>With Helper Hint:</Text> 2 SP {'\n'}
                   • <Text style={styles.bold}>Don't Know:</Text> 1 SP{'\n'}
                   • Each question can only be answered once per game{'\n'}
                   • Answered questions become greyed out
